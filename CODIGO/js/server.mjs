@@ -11,8 +11,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(express.static('CODIGO'));
-app.use('/IMG', express.static('IMG'));
+app.use(express.static('../'));
+app.use('/IMG', express.static('../../IMG'));
 
 // ── R2 CLIENT ────────────────────────────────────────────────────────────────
 const r2 = new S3Client({
