@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrador - Grupo Solvens</title>
+
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+
+    <link rel="stylesheet" href="style/inicio.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="inicioAdmin.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenedor-principal">
+        <div class="bienvenida">
+            <h1>Panel de <span>Administrador</span></h1>
+            <p>Gestión de Cadenas</p>
+        </div>
+
+        <div class="grid-acciones">
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <h3>Agregar Cadena</h3>
+                <p>Agrega la cadena al sistema</p>
+                <a class="btn-entrar" href="agregar_cadena.html">Agregar</a>
+            </div>
+
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-users-gear"></i>
+                <h3>Eliminar Cadena</h3>
+                <p>Elimina la cadena del sistema</p>
+                <a class="btn-entrar" href="eliminar_cadena.html">Eliminar</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-contacto">
+        <p>Panel de Control Interno | Grupo Solvens</p>
+    </footer>
+
+    <script>
+        document.querySelectorAll(".tarjeta-accion").forEach(function(card) {
+            var link = card.querySelector(".btn-entrar");
+            if (link) {
+                card.style.cursor = "pointer";
+                card.addEventListener("click", function(e) {
+                    if (!e.target.closest(".btn-entrar")) {
+                        window.location.href = link.href;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

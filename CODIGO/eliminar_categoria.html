@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo Solvens - Eliminar Categoría</title>
+    <link rel="stylesheet" href="style/formulario.css">
+    <link rel="stylesheet" href="style/modal.css">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_categoria.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenido">
+        <h1>Eliminar <span>Categoría</span></h1>
+        <p class="subtitulo">Busque la categoría que desea quitar del sistema</p>
+
+        <div class="formulario">
+            <div class="fila">
+                <input type="text" id="buscador-cat" placeholder="Escriba para buscar (ej: Lácteos)...">
+            </div>
+
+            <div id="resultados-busqueda">
+            </div>
+        </div>
+    </main>
+
+    <script src="js/modal_confirmacion.js"></script>
+    <script>
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.classList.add('visible');
+            setTimeout(() => t.classList.remove('visible'), 3500);
+        }
+
+        const buscador = document.getElementById('buscador-cat');
+        const contenedor = document.getElementById('resultados-busqueda');
+
+        buscador.addEventListener('input', async () => {
+            const texto = buscador.value.trim();
+
+            if (texto.length < 1) {
+                contenedor.innerHTML = '';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/buscar-categorias?q=${texto}`);
+                const categorias = await res.json();
+
+                contenedor.innerHTML = '';
+                if (categorias.length === 0) {
+                    contenedor.innerHTML = '<p style="padding: 15px; color: #555; font-size: 13px;">No se encontraron coincidencias.</p>';
+                    return;
+                }
+
+                categorias.forEach(c => {
+                    const item = document.createElement('div');
+                    item.style = "display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #222;";
+                    item.innerHTML = `
+                    <span>${c.Categoria}</span>
+                    <button onclick="confirmarEliminar(${c.ID}, '${c.Categoria}')" style="background: transparent; color: #f87171; border: 1px solid #dc2626; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        Eliminar
+                    </button>
+                `;
+                    contenedor.appendChild(item);
+                });
+            } catch (err) { console.error("Error buscando:", err); }
+        });
+
+        async function confirmarEliminar(id, nombre) {
+            const confirmar = await mostrarConfirmacion({
+                titulo: '¿Eliminar Categoría?',
+                mensaje: `¿Estás seguro de que quieres eliminar la categoría <strong>"${nombre}"</strong>? Se eliminarán también los productos dentro de ella.`,
+                botonConfirmar: 'Eliminar Categoria'
+            });
+
+            if (!confirmar) return;
+
+            try {
+                const res = await fetch(`/api/eliminar-categoria/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                mostrarToast(result.message, res.ok ? "exito" : "error");
+                buscador.value = ''; // Limpiar buscador
+                contenedor.innerHTML = ''; // Limpiar resultados
+            } catch (err) { mostrarToast("Error al eliminar.", "error"); }
+        }
+    </script>
+
+    <div class="toast" id="toast"></div>
+
+</body>
+
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo Solvens - Carga de Puntos de Venta</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/formulario.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <a href="Admin_gestion_sucursal.html" class="btn-volver">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+            </svg>
+        </a>
+    </div>
+    <div class="header-center">
+        <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+    </div>
+    <div class="header-right">
+        <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+    </div>
+</header>
+
+<main class="contenido">
+    <h1>Carga de <span>Sucursales</span></h1>
+
+    <form class="formulario" id="form-sucursal">
+
+        <!-- FILA SELECTS -->
+        <div class="fila">
+
+            <div class="campo">
+                <select id="select-cadena">
+                    <option value="">Cargando cadenas...</option>
+                </select>
+                <small id="error-cadena"></small>
+            </div>
+
+            <div class="campo">
+                <select id="select-subzona">
+                    <option value="">Cargando zonas...</option>
+                </select>
+                <small id="error-subzona"></small>
+            </div>
+
+        </div>
+
+        <!-- FILA DIRECCIÓN -->
+        <div class="fila">
+
+            <div class="campo">
+                <input type="text" id="calle" placeholder="Calle/Dirección">
+                <small id="error-calle"></small>
+            </div>
+
+            <div class="campo">
+                <input type="number" id="altura" placeholder="Altura">
+                <small id="error-altura"></small>
+            </div>
+
+        </div>
+
+        <!-- FILA LOCALIDAD -->
+        <div class="fila">
+
+            <div class="campo">
+                <input type="text" id="localidad" placeholder="Localidad/Ciudad">
+                <small id="error-localidad"></small>
+            </div>
+
+        </div>
+
+        <button type="submit">Guardar Sucursal</button>
+    </form>
+</main>
+
+<script>
+    function mostrarToast(mensaje, tipo = 'exito') {
+        const t = document.getElementById('toast');
+        t.textContent = mensaje;
+        t.className = 'toast ' + tipo;
+        t.style.display = 'block';
+
+        setTimeout(() => {
+            t.style.display = 'none';
+        }, 3500);
+    }
+
+    const URL_BASE = '/api';
+    const form = document.getElementById('form-sucursal');
+
+    const cadena = document.getElementById('select-cadena');
+    const subzona = document.getElementById('select-subzona');
+    const calle = document.getElementById('calle');
+    const altura = document.getElementById('altura');
+    const localidad = document.getElementById('localidad');
+
+    const eCadena = document.getElementById('error-cadena');
+    const eSubzona = document.getElementById('error-subzona');
+    const eCalle = document.getElementById('error-calle');
+    const eAltura = document.getElementById('error-altura');
+    const eLocalidad = document.getElementById('error-localidad');
+
+    function limpiarErrores() {
+        [eCadena, eSubzona, eCalle, eAltura, eLocalidad].forEach(e => e.textContent = '');
+        [cadena, subzona, calle, altura, localidad].forEach(i => i.classList.remove('input-error'));
+    }
+
+    function error(input, label, msg) {
+        label.textContent = msg;
+        input.classList.add('input-error');
+    }
+
+    // CARGA INICIAL
+    document.addEventListener("DOMContentLoaded", async () => {
+        try {
+            // Cadenas
+            const resCadenas = await fetch(`${URL_BASE}/cadenas`);
+            const cadenas = await resCadenas.json();
+            cadena.innerHTML = '<option value="" disabled selected>Seleccione Cadena</option>';
+            cadenas.forEach(c => cadena.innerHTML += `<option value="${c.ID}">${c.Nombre}</option>`);
+
+            // Subzonas
+            const resSub = await fetch(`${URL_BASE}/subzonas`);
+            const subzonas = await resSub.json();
+            subzona.innerHTML = '<option value="" disabled selected>Seleccione Subzona/Provincia</option>';
+            subzonas.forEach(s => subzona.innerHTML += `<option value="${s.ID}">${s.Nombre}</option>`);
+
+        } catch {
+            mostrarToast("Error al cargar datos iniciales.", "error");
+        }
+    });
+
+    // SUBMIT
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        limpiarErrores();
+
+        let ok = true;
+
+        if (!cadena.value) {
+            error(cadena, eCadena, "Seleccione una cadena");
+            ok = false;
+        }
+
+        if (!subzona.value) {
+            error(subzona, eSubzona, "Seleccione una subzona");
+            ok = false;
+        }
+
+        if (calle.value.trim().length < 3) {
+            error(calle, eCalle, "Ingrese una calle válida");
+            ok = false;
+        }
+
+        if (!altura.value || altura.value <= 0) {
+            error(altura, eAltura, "Ingrese una altura válida");
+            ok = false;
+        }
+
+        if (localidad.value.trim().length < 2) {
+            error(localidad, eLocalidad, "Ingrese la localidad");
+            ok = false;
+        }
+
+        if (!ok) return;
+
+        const payload = {
+            calle: calle.value.trim(),
+            altura: altura.value,
+            localidad: localidad.value.trim(),
+            id_subzona: subzona.value,
+            id_cadena: cadena.value
+        };
+
+        try {
+            const response = await fetch(`${URL_BASE}/agregar-sucursal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                mostrarToast(result.message, "exito");
+                form.reset();
+            } else {
+                mostrarToast(result.message, "aviso");
+            }
+
+        } catch {
+            mostrarToast("Error de conexión con el servidor.", "error");
+        }
+    });
+
+    // Limpieza en tiempo real
+    [cadena, subzona, calle, altura, localidad].forEach(i => {
+        i.addEventListener('input', limpiarErrores);
+        i.addEventListener('change', limpiarErrores);
+    });
+</script>
+
+<div class="toast" id="toast"></div>
+
+</body>
+</html>

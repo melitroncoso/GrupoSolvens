@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grupo Solvens - Registro de Usuarios</title>
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/formulario.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></head>
+
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_usuario.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenido">
+        <h1>Registro de <span>Usuarios</span></h1>
+        <p class="subtitulo">Complete los datos del nuevo integrante del sistema</p>
+
+        <form class="formulario" id="form-usuario" novalidate>
+            <div class="fila-layout">
+                <div class="campo">
+                    <input type="text" id="nombre" placeholder="Nombre Completo" required>
+                    <small id="error-nombre"></small>
+                </div>
+                <div class="campo">
+                    <select id="tipo-usuario" required>
+                        <option value="" disabled selected>Cargando roles...</option>
+                    </select>
+                    <small id="error-tipo"></small>
+                </div>
+            </div>
+
+            <div class="campo">
+                <input type="email" id="mail" placeholder="Correo Electrónico" required>
+                <small id="error-mail"></small>
+            </div>
+
+            <div class="fila-layout">
+                <div class="campo">
+                    <input type="text" id="usuario" placeholder="Nombre de Usuario" required>
+                    <small id="error-usuario"></small>
+                </div>
+                <div class="campo">
+                    <input type="password" id="clave" placeholder="Contraseña" required>
+                    <small id="error-clave"></small>
+                </div>
+            </div>
+
+            <div id="seccion-abastece">
+                <h3>Asignar Sucursales que Abastece</h3>
+                <p>Filtre por cadena y seleccione los puntos de venta.</p>
+
+                <div class="campo">
+                    <select id="filtro-cadena-abastece">
+                        <option value="" disabled selected>Filtrar por Cadena...</option>
+                    </select>
+                </div>
+
+                <div id="lista-sucursales-check">
+                    <p>Seleccione una cadena para ver sucursales</p>
+                </div>
+
+                <p id="contador-seleccion">Sucursales seleccionadas: 0</p>
+            </div>
+
+            <button type="submit">Registrar Usuario</button>
+        </form>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const URL_BASE = '/api';
+        const form = document.getElementById('form-usuario');
+        const selectTipo = document.getElementById('tipo-usuario');
+        const seccionAbastece = document.getElementById('seccion-abastece');
+        const filtroCadena = document.getElementById('filtro-cadena-abastece');
+        const listaCheck = document.getElementById('lista-sucursales-check');
+        const contadorText = document.getElementById('contador-seleccion');
+        const toast = document.getElementById('toast');
+
+        let sucursalesSeleccionadas = new Set();
+
+        // --- FUNCIONES DE UTILIDAD ---
+        function mostrarToast(mensaje, tipo = 'exito') {
+            toast.textContent = mensaje;
+            toast.className = `toast ${tipo} visible`;
+            setTimeout(() => toast.classList.remove('visible'), 3500);
+        }
+
+        function limpiarErrores() {
+            document.querySelectorAll('.input-error').forEach(i => i.classList.remove('input-error'));
+            document.querySelectorAll('.campo small').forEach(s => s.textContent = '');
+        }
+
+        function setFieldError(id, mensaje) {
+            const field = document.getElementById(id);
+            field.classList.add('input-error');
+            const small = field.parentElement.querySelector('small');
+            if (small) small.textContent = mensaje;
+        }
+
+        // --- CARGA INICIAL ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const res = await fetch(`${URL_BASE}/tipos-usuario`);
+                const data = await res.json();
+                selectTipo.innerHTML = '<option value="" disabled selected>Seleccione un Rol</option>';
+                data.forEach(t => {
+                    selectTipo.innerHTML += `<option value="${t.ID}">${t.Tipo}</option>`;
+                });
+            } catch (err) {
+                console.error("Error al cargar roles");
+            }
+        });
+
+        // --- LÓGICA DE ROLES ---
+        selectTipo.addEventListener('change', async () => {
+            const rolSeleccionado = selectTipo.options[selectTipo.selectedIndex].text.toLowerCase();
+
+            if (rolSeleccionado === "cliente") {
+                seccionAbastece.style.display = 'block';
+                if (filtroCadena.options.length <= 1) {
+                    const res = await fetch(`${URL_BASE}/cadenas`);
+                    const cadenas = await res.json();
+                    filtroCadena.innerHTML = '<option value="" disabled selected>Filtrar por Cadena...</option>';
+                    cadenas.forEach(c => {
+                        filtroCadena.innerHTML += `<option value="${c.ID}">${c.Nombre}</option>`;
+                    });
+                }
+            } else {
+                seccionAbastece.style.display = 'none';
+                sucursalesSeleccionadas.clear();
+                actualizarContador();
+            }
+        });
+
+        // --- LÓGICA DE SUCURSALES ---
+        filtroCadena.addEventListener('change', async () => {
+            const idCadena = filtroCadena.value;
+            listaCheck.innerHTML = '<p>Buscando sucursales...</p>';
+
+            try {
+                const res = await fetch(`${URL_BASE}/buscar-sucursales?id_cadena=${idCadena}`);
+                const sucursales = await res.json();
+                listaCheck.innerHTML = '';
+
+                if (sucursales.length === 0) {
+                    listaCheck.innerHTML = '<p>Sin sucursales registradas.</p>';
+                    return;
+                }
+
+                sucursales.forEach(s => {
+                    const estaSeleccionada = sucursalesSeleccionadas.has(s.ID.toString()) ? 'checked' : '';
+                    const div = document.createElement('div');
+                    div.style.cssText = "display: flex; align-items: center; margin-bottom: 8px;";
+                    div.innerHTML = `
+                        <input type="checkbox" value="${s.ID}" ${estaSeleccionada} style="margin-right: 10px; width: auto;">
+                        <label>${s.Calle} ${s.Altura || ''}, ${s.Localidad}</label>
+                    `;
+                    div.querySelector('input').addEventListener('change', (e) => gestionarSeleccion(e.target));
+                    listaCheck.appendChild(div);
+                });
+            } catch (err) {
+                listaCheck.innerHTML = '<p style="color: #dc2626;">Error de conexión.</p>';
+            }
+        });
+
+        function gestionarSeleccion(checkbox) {
+            if (checkbox.checked) sucursalesSeleccionadas.add(checkbox.value);
+            else sucursalesSeleccionadas.delete(checkbox.value);
+            actualizarContador();
+        }
+
+        function actualizarContador() {
+            contadorText.textContent = `Sucursales seleccionadas: ${sucursalesSeleccionadas.size}`;
+        }
+
+        // --- ENVÍO DEL FORMULARIO ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            limpiarErrores();
+
+            // Validaciones básicas antes de enviar
+            let valid = true;
+            if (document.getElementById('nombre').value.trim().length < 3) {
+                setFieldError('nombre', 'Mínimo 3 caracteres');
+                valid = false;
+            }
+            if (!selectTipo.value) {
+                setFieldError('tipo-usuario', 'Seleccione un rol');
+                valid = false;
+            }
+            if (!document.getElementById('mail').value.includes('@')) {
+                setFieldError('mail', 'Email inválido');
+                valid = false;
+            }
+            if (document.getElementById('usuario').value.length < 4) {
+                setFieldError('usuario', 'Mínimo 4 caracteres');
+                valid = false;
+            }
+            if (document.getElementById('clave').value.length < 4) {
+                setFieldError('clave', 'Mínimo 4 caracteres');
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            const payload = {
+                nombre: document.getElementById('nombre').value,
+                id_tipo: selectTipo.value,
+                mail: document.getElementById('mail').value,
+                usuario: document.getElementById('usuario').value,
+                clave: document.getElementById('clave').value,
+                sucursalesIds: Array.from(sucursalesSeleccionadas)
+            };
+
+            try {
+                const response = await fetch(`${URL_BASE}/crear-usuario`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarToast(result.message, "exito");
+                    form.reset();
+                    sucursalesSeleccionadas.clear();
+                    actualizarContador();
+                    seccionAbastece.style.display = 'none';
+                } else {
+                    mostrarToast(result.message, "aviso");
+                }
+            } catch (err) {
+                mostrarToast("Error de comunicación con el servidor.", "error");
+            }
+        });
+    </script>
+</body>
+</html>

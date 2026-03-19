@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo Solvens - Agregar Categoría</title>
+    <link rel="stylesheet" href="style/formulario.css">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_categoria.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenido">
+        <h1>Nueva <span>Categoría</span></h1>
+
+        <form class="formulario" id="form-agregar">
+
+            <!-- Campo -->
+            <div class="campo">
+                <input type="text" id="nombre-cat" placeholder="Nombre de la Categoría">
+                <small id="error-cat"></small>
+            </div>
+
+            <button type="submit">Guardar Categoría</button>
+        </form>
+    </main>
+
+    <script>
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.style.display = 'block';
+
+            setTimeout(() => {
+                t.style.display = 'none';
+            }, 3500);
+        }
+
+        const form = document.getElementById('form-agregar');
+        const inputCat = document.getElementById('nombre-cat');
+        const errorCat = document.getElementById('error-cat');
+
+        function limpiarError() {
+            errorCat.textContent = '';
+            inputCat.classList.remove('input-error');
+        }
+
+        function mostrarError(msg) {
+            errorCat.textContent = msg;
+            inputCat.classList.add('input-error');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            limpiarError();
+
+            const categoria = inputCat.value.trim();
+
+            // Validación
+            if (categoria.length < 3) {
+                mostrarError("La categoría debe tener al menos 3 caracteres.");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/agregar-categoria', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categoria })
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    mostrarToast(result.message, "exito");
+                    form.reset();
+                } else {
+                    mostrarToast(result.message, "aviso");
+                }
+
+            } catch (err) {
+                mostrarToast("Error al conectar con el servidor.", "error");
+            }
+        });
+
+        // Limpia error al escribir
+        inputCat.addEventListener('input', limpiarError);
+    </script>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+</body>
+
+</html>

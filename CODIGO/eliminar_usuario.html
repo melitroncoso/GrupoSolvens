@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo Solvens - Eliminar Usuario</title>
+    <link rel="stylesheet" href="style/formulario.css">
+    <link rel="stylesheet" href="style/modal.css">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_usuario.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenido">
+        <h1>Eliminar <span>Usuario</span></h1>
+        <p class="subtitulo">Busque al usuario que desea dar de baja del sistema</p>
+
+        <div class="formulario">
+            <input type="text" id="buscador-user" placeholder="Escriba nombre o nombre de usuario...">
+
+            <div id="lista-usuarios">
+            </div>
+        </div>
+    </main>
+
+    <script src="js/modal_confirmacion.js"></script>
+    <script>
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.classList.add('visible');
+            setTimeout(() => t.classList.remove('visible'), 3500);
+        }
+
+        const buscador = document.getElementById('buscador-user');
+        const contenedor = document.getElementById('lista-usuarios');
+
+        buscador.addEventListener('input', async () => {
+            const q = buscador.value.trim();
+            if (q.length < 2) { contenedor.innerHTML = ''; return; }
+
+            try {
+                // Reutilizamos la lógica de búsqueda que aplicamos en productos/categorías
+                const res = await fetch(`/api/buscar-usuarios-eliminar?q=${q}`);
+                const usuarios = await res.json();
+
+                contenedor.innerHTML = usuarios.map(u => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #222;">
+                    <div>
+                        <strong style="display: block; color: #fff;">${u.Nombre}</strong>
+                        <small style="color: #555;">Usuario: ${u.Usuario} | Rol: ${u.Tipo}</small>
+                    </div>
+                    <button onclick="eliminarUsuario(${u.ID}, '${u.Nombre}')" 
+                            style="background: transparent; color: #f87171; border: 1px solid #dc2626; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        Eliminar
+                    </button>
+                </div>
+            `).join('');
+
+                if (usuarios.length === 0) contenedor.innerHTML = '<p style="padding: 15px; color: #555; font-size: 13px;">No hay coincidencias.</p>';
+            } catch (err) { console.error(err); }
+        });
+
+        async function eliminarUsuario(id, nombre) {
+            const confirmar = await mostrarConfirmacion({
+                titulo: '¿Eliminar Usuario?',
+                mensaje: `¿Seguro que deseas eliminar a <strong>"${nombre}"</strong>?<br>Se borrarán sus productos y asignaciones permanentemente.`,
+                botonConfirmar: 'Eliminar Usuario'
+            });
+
+            if (!confirmar) return;
+
+            try {
+                const res = await fetch(`/api/eliminar-usuario/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+
+                if (res.ok) {
+                    mostrarToast(result.message, "exito");
+                    buscador.value = '';
+                    contenedor.innerHTML = '';
+                }
+            } catch (err) { mostrarToast("Error al eliminar.", "error"); }
+        }
+    </script>
+
+    <div class="toast" id="toast"></div>
+
+</body>
+
+</html>

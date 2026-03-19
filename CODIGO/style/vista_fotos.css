@@ -1,0 +1,791 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: #0f172a;
+    min-height: 100vh;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+.header {
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(12px);
+    padding: 12px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-nav {
+    height: 44px;
+    background: white;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.contenido {
+    width: 100%;
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 40px;
+    flex: 1;
+}
+
+.visita-seccion {
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.visita-header {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.visita-header h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+}
+
+.visita-header .sub {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.visita-header .sub i {
+    color: #ef4444;
+}
+
+/* Mantenemos las imágenes siempre en una sola fila (Scroll horizontal) */
+.galeria-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 32px;
+    padding: 20px 60px;
+    justify-content: center;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    
+}
+
+/* Espaciado lateral via pseudo-elementos: evita el bug de Chromium
+   donde el padding-right se ignora en flex con overflow-x: auto */
+.galeria-grid::before,
+.galeria-grid::after {
+    content: '';
+    flex: 0 0 100px;
+    /* mismo ancho que las flechas nav + su padding */
+}
+
+/* Centrado si hay pocos elementos y no rebalsan el contenedor */
+.galeria-grid:not(:has(:nth-child(4))) {
+    justify-content: center;
+}
+
+/* Con centrado, los pseudo-elementos no deben empujar */
+.galeria-grid:not(:has(:nth-child(4)))::before,
+.galeria-grid:not(:has(:nth-child(4)))::after {
+    display: none;
+}
+
+
+/* Ocultar scrollbar en Chrome/Safari */
+.galeria-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.foto-card {
+    position: relative;
+    flex: 0 0 calc((100% - 64px) / 3);
+    /* Regresamos al ancho original */
+    cursor: pointer;
+    border-radius: 20px;
+    overflow: hidden;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    scroll-snap-align: center;
+}
+
+.foto-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 20px 40px -15px rgba(239, 68, 68, 0.3);
+}
+
+.foto-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.foto-card img {
+    width: 100%;
+    height: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    /* Garantiza imagen completa */
+    transition: transform 0.5s ease;
+}
+
+.btn-rotar-gallery {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #0f172a;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s;
+    z-index: 10;
+    opacity: 1;
+    /* Siempre visible */
+    transform: translateY(0);
+    /* Siempre en posición */
+}
+
+.foto-card:hover .btn-rotar-gallery {
+    background: white;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-rotar-gallery:hover {
+    background: #ef4444;
+    color: white;
+    transform: rotate(90deg) scale(1.1);
+}
+
+/* Lightbox */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.98);
+    backdrop-filter: blur(20px);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.lightbox.activo {
+    display: flex;
+}
+
+.lightbox-img {
+    max-width: 90vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lightbox-controls {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    display: flex;
+    gap: 16px;
+    z-index: 10001;
+}
+
+.btn-control {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+}
+
+.btn-control:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+}
+
+.lightbox-prev,
+.lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+    z-index: 10001;
+}
+
+.lightbox-prev {
+    left: 40px;
+}
+
+.lightbox-next {
+    right: 40px;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    transform: translateY(-50%) scale(1.15);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+}
+
+.lightbox-info {
+    position: absolute;
+    bottom: 40px;
+    background: rgba(30, 41, 59, 0.9);
+    padding: 12px 28px;
+    border-radius: 100px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.btn-control-inline {
+    background: #ef4444;
+    color: #ffffff;
+    /* Asegurar icono blanco */
+    border: none;
+    width: 44px;
+    /* Un poco más grande para ser el círculo rojo del reporte */
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    /* Icono más grande */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin-left: 20px;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    flex-shrink: 0;
+}
+
+.btn-control-inline i {
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.btn-control-inline:hover {
+    background: #ffffff;
+    color: #ef4444 !important;
+    transform: rotate(30deg) scale(1.1);
+}
+
+.btn-control-inline:hover i {
+    color: #ef4444 !important;
+}
+
+
+
+.lightbox-info span {
+    font-size: 15px;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.lightbox-info i {
+    color: #ef4444;
+}
+
+/* Nav Arrows */
+.nav-container {
+    position: fixed;
+    top: 55%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    pointer-events: none;
+    transform: translateY(-50%);
+    z-index: 100;
+}
+
+.btn-nav-visita {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    /* Círculo perfecto */
+    cursor: pointer;
+    font-size: 24px;
+    pointer-events: auto;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-nav-visita:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1) rotate(0deg);
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
+}
+
+@media (max-width: 1024px) {
+    .galeria-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 12px 20px;
+    }
+
+    .nav-container {
+        padding: 0 10px;
+    }
+
+    .btn-nav-visita {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    .galeria-grid {
+        grid-template-columns: 1fr;
+        padding: 20px 60px;
+    }
+
+    .contenido {
+        padding: 0 20px;
+    }
+
+    .visita-header h1 {
+        font-size: 2rem;
+    }
+}
+/* ── BTN-VOLVER (versión vista_fotos) ── */
+.btn-volver {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #ef4444;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.btn-volver:hover {
+    background: #ef4444;
+    color: white;
+    transform: translateX(-3px);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+/* ── STATUS PILLS (gallery cards) ── */
+.foto-card .status-pill {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 5;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.foto-card .status-pill.status-pendiente {
+    background: rgba(234, 179, 8, 0.9);
+    color: white;
+}
+
+.foto-card .status-pill.status-aprobado {
+    background: rgba(34, 197, 94, 0.9);
+    color: white;
+}
+
+.foto-card .status-pill.status-rechazado {
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+}
+
+/* ── ACCIONES OVERLAY (admin gallery) ── */
+.img-actions-overlay {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+    opacity: 1;
+}
+
+.btn-mini-accion {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+.btn-mini-accion.aprobar {
+    background: #22c55e;
+}
+
+.btn-mini-accion.rechazar {
+    background: #ef4444;
+}
+
+.btn-mini-accion:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+/* ── ADMIN LIGHTBOX ACTIONS ── */
+.admin-lightbox-actions {
+    display: flex;
+    gap: 12px;
+    margin-left: 20px;
+    padding-left: 20px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-admin-lb {
+    padding: 8px 16px;
+    border-radius: 50px;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    color: white;
+}
+
+.btn-admin-lb.aprobar {
+    background: #22c55e;
+}
+
+.btn-admin-lb.rechazar {
+    background: #ef4444;
+}
+
+.btn-admin-lb:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* ── STATUS BADGE (lightbox) ── */
+.status-badge-lb {
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ddd;
+}
+
+.status-badge-lb.status-aprobado {
+    background: #22c55e;
+    color: white;
+}
+
+.status-badge-lb.status-rechazado {
+    background: #ef4444;
+    color: white;
+}
+
+.status-badge-lb.status-pendiente {
+    background: #eab308;
+    color: white;
+}
+
+/* ── TOAST (vista_fotos) ── */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    z-index: 99999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.exito {
+    background: #064e3b;
+    border: 1px solid #10b981;
+    color: #34d399;
+}
+
+.toast.error {
+    background: #450a0a;
+    border: 1px solid #ef4444;
+    color: #f87171;
+}
+
+/* ── CLIENTE: VISITA-NAV ── */
+.visita-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.nav-btn {
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: #fff;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.2s;
+}
+
+.nav-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* ── CLIENTE: LIGHTBOX ACTIONS ── */
+.lightbox-actions {
+    position: absolute;
+    top: 32px;
+    right: 40px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    z-index: 10002;
+}
+
+.lightbox-actions button {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: rgba(15, 23, 42, 0.88);
+    color: #e5e7eb;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.lightbox-actions button i {
+    font-size: 18px;
+}
+
+.lightbox-actions button:hover {
+    transform: translateY(-1px) scale(1.05);
+    background: rgba(220, 38, 38, 0.95);
+    color: #fff;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.65);
+}
+
+/* ── CLIENTE: LIGHTBOX META (info card) ── */
+.lightbox-meta {
+    position: relative;
+    order: -1;
+    left: auto;
+    transform: none;
+    margin: 0 0 15px 0;
+    background: rgba(18, 18, 18, 0.9);
+    padding: 10px 24px;
+    border-radius: 30px;
+    color: #fff;
+    text-align: center;
+    z-index: 1000;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    width: fit-content;
+    max-width: 90vw;
+    transition: all 0.3s ease;
+}
+
+.lightbox-meta span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #ddd;
+    white-space: nowrap;
+}
+
+.lightbox-meta i {
+    color: #dc2626;
+    width: 16px;
+}
+
+/* ── BTN PPTX ── */
+.btn-pptx {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+    margin-right: 15px;
+    white-space: nowrap;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.btn-pptx:hover {
+    background: #b71c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(211, 47, 47, 0.4);
+}
+
+@media (max-width: 768px) {
+    .btn-pptx span {
+        display: none;
+    }
+
+    .btn-pptx {
+        padding: 10px;
+    }
+}
+
+/* ── header-right flex (vista_fotos_cliente) ── */
+.header-right-flex {
+    display: flex;
+    align-items: center;
+}
+
+/* ── botones-filtro flex (vista_fotos_cliente) ── */
+.botones-filtro-row {
+    display: flex;
+    gap: 10px;
+}
+
+/* ── BTN TOGGLE SIDEBAR (fotos pages) ── */
+.btn-toggle-fotos {
+    margin-left: 15px;
+}
+
+/* ── CONTENEDOR VISITAS FULL WIDTH ── */
+.contenedor-visitas-full {
+    width: 100%;
+}

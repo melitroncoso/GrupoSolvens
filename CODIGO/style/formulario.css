@@ -1,0 +1,517 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ===== BASE ===== */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0e0e0e;
+    min-height: 100vh;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Fondo profesional */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at top, #222 0%, #111 40%, #0b0b0b 100%);
+    opacity: 0.7;
+    z-index: -1;
+}
+
+/* ===== HEADER ===== */
+.header {
+    background: rgba(15, 15, 15, 0.95);
+    backdrop-filter: blur(6px);
+    padding: 12px 50px;
+    display: grid;
+    grid-template-columns: 120px 1fr 120px;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-left,
+.header-center,
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.header-left {
+    justify-content: flex-start;
+}
+
+.header-center {
+    justify-content: center;
+}
+
+.header-right {
+    justify-content: flex-end;
+}
+
+.logo-nav {
+    height: 52px;
+    background: white;
+    padding: 6px;
+    border-radius: 6px;
+    transition: transform 0.3s ease;
+}
+
+.logo-nav:hover {
+    transform: scale(1.05);
+}
+
+.btn-volver {
+    display: flex;
+    align-items: center;
+    opacity: 0.8;
+    transition: all 0.2s;
+}
+
+.btn-volver:hover {
+    opacity: 1;
+    transform: translateX(-3px);
+}
+
+.btn-salir {
+    color: #aaaaaa;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.btn-salir:hover {
+    color: #dc2626;
+}
+
+/* ===== CONTENIDO ===== */
+.contenido {
+    width: 100%;
+    max-width: 720px;
+    margin: 50px auto 60px;
+    padding: 0 24px;
+}
+
+/* ===== TITULOS ===== */
+h1 {
+    font-size: 34px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+h1 span {
+    color: #dc2626;
+}
+
+.subtitulo {
+    color: #aaaaaa;
+    font-size: 14px;
+    margin-bottom: 40px;
+}
+
+/* ===== CARD ===== */
+.formulario {
+    background: rgba(18, 18, 18, 0.92);
+    border: 1px solid #2f2f2f;
+    border-radius: 14px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== CAMPOS ===== */
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ===== INPUTS ===== */
+input,
+select {
+    width: 100%;
+    padding: 12px 14px;
+    background-color: #141414;
+    border: 1px solid #2f2f2f;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+input::placeholder {
+    color: #666;
+}
+
+input:hover,
+select:hover {
+    border-color: #444;
+}
+
+input:focus,
+select:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+/* ===== SELECT ===== */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+}
+
+/* ===== MENSAJES DE ERROR ===== */
+.campo small {
+    font-size: 12px;
+    color: #f87171;
+    min-height: 14px;
+}
+
+/* Estado error visual */
+.input-error {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* ===== BOTÓN ===== */
+button {
+    margin-top: 10px;
+    padding: 13px 26px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #b91c1c, #991b1b);
+    box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* ===== TOAST ===== */
+#toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    display: none;
+    z-index: 9999;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+}
+
+#toast.exito {
+    background: #052e16;
+    border: 1px solid #4ade80;
+    color: #4ade80;
+}
+
+#toast.error {
+    background: #2e0f0f;
+    border: 1px solid #dc2626;
+    color: #f87171;
+}
+
+#toast.aviso {
+    background: #2e250f;
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+}
+
+/* ===== LISTA DE SUCURSALES ===== */
+.lista-sucursales {
+    max-height: 260px;
+    overflow-y: auto;
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Fila */
+.sucursal-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #141414;
+    border: 1px solid #1f1f1f;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sucursal-item:hover {
+    background: #1a1a1a;
+    border-color: #333;
+}
+
+/* Checkbox custom */
+.sucursal-item input[type="checkbox"] {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #444;
+    border-width: 1.5px;
+    border-radius: 4px;
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sucursal-item input[type="checkbox"]::before {
+    content: "✔";
+    font-size: 10px;
+    color: #fff;
+    transform: scale(0);
+    transition: transform 0.15s ease;
+}
+
+.sucursal-item input[type="checkbox"]:checked {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+.sucursal-item input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+/* Texto */
+.sucursal-texto {
+    color: #e5e5e5;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Scroll moderno */
+.lista-sucursales::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lista-sucursales::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lista-sucursales::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 10px;
+}
+
+.lista-sucursales::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .header {
+        padding: 12px 18px;
+        grid-template-columns: 60px 1fr 60px;
+    }
+
+    .logo-nav {
+        height: 42px;
+    }
+
+    .contenido {
+        margin: 30px auto 50px;
+        padding: 0 14px;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+
+    .formulario {
+        padding: 22px;
+        border-radius: 12px;
+    }
+
+    button {
+        width: 100%;
+        text-align: center;
+        align-self: stretch;
+    }
+}
+
+@media (max-width: 420px) {
+    h1 {
+        font-size: 22px;
+    }
+
+    .subtitulo {
+        font-size: 13px;
+    }
+
+    input,
+    select {
+        font-size: 13px;
+        padding: 11px 12px;
+    }
+}
+/* ── Toast con clase .visible (páginas de eliminar) ── */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 14px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    max-width: 360px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.toast.exito {
+    background: #1a2e1a;
+    border: 1px solid #4ade80;
+    color: #4ade80;
+}
+
+.toast.error {
+    background: #2e1a1a;
+    border: 1px solid #dc2626;
+    color: #f87171;
+}
+
+.toast.aviso {
+    background: #2e2a1a;
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+}
+
+.toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ── AGREGAR USUARIO: layout específico ── */
+.fila-layout {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.fila-layout .campo {
+    flex: 1;
+    min-width: 200px;
+}
+
+#seccion-abastece {
+    display: none;
+    border-top: 1px solid #2a2a2a;
+    padding-top: 20px;
+    margin-top: 10px;
+}
+
+#seccion-abastece h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #aaaaaa;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+#seccion-abastece > p {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 14px;
+}
+
+#lista-sucursales-check {
+    background: #141414;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+#lista-sucursales-check div label {
+    color: #cccccc;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#contador-seleccion {
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* ── ACTUALIZAR CLIENTE: panel edicion ── */
+.panel-edicion {
+    margin-top: 20px;
+    border-top: 2px solid #2a2a2a;
+    padding-top: 20px;
+}
+
+.contador-sucursales {
+    margin: 10px 0;
+    font-weight: bold;
+    color: #4ade80;
+}
+
+.btn-guardar-verde {
+    background-color: #28a745;
+}
+
+/* ── SUCURSAL CHECK ROW (agregar_usuario) ── */
+.sucursal-check-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.check-sucursal {
+    margin-right: 10px;
+    width: auto !important;
+}
+
+.error-texto {
+    color: #f87171;
+    font-size: 13px;
+    padding: 8px 0;
+}

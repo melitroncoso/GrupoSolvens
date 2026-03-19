@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo Solvens - Agregar Producto</title>
+    <link rel="stylesheet" href="style/formulario.css">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_producto.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenido">
+        <h1>Nuevo <span>Producto</span></h1>
+
+        <form class="formulario" id="form-producto">
+
+            <!-- FILA SELECTS -->
+            <div class="fila">
+
+                <div class="campo">
+                    <select id="select-cliente">
+                        <option value="">Cargando Clientes...</option>
+                    </select>
+                    <small id="error-cliente"></small>
+                </div>
+
+                <div class="campo">
+                    <select id="select-categoria">
+                        <option value="">Cargando Categorías...</option>
+                    </select>
+                    <small id="error-categoria"></small>
+                </div>
+
+            </div>
+
+            <!-- FILA INPUTS -->
+            <div class="fila">
+
+                <div class="campo">
+                    <input type="text" id="descripcion" placeholder="Descripción del Producto">
+                    <small id="error-descripcion"></small>
+                </div>
+
+                <div class="campo">
+                    <input type="text" id="sku" placeholder="SKU / Código">
+                    <small id="error-sku"></small>
+                </div>
+
+            </div>
+
+            <button type="submit">Guardar Producto</button>
+        </form>
+    </main>
+
+    <script>
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.style.display = 'block';
+
+            setTimeout(() => {
+                t.style.display = 'none';
+            }, 3500);
+        }
+
+        const URL_BASE = '/api';
+
+        const form = document.getElementById('form-producto');
+        const cliente = document.getElementById('select-cliente');
+        const categoria = document.getElementById('select-categoria');
+        const descripcion = document.getElementById('descripcion');
+        const sku = document.getElementById('sku');
+
+        const errorCliente = document.getElementById('error-cliente');
+        const errorCategoria = document.getElementById('error-categoria');
+        const errorDescripcion = document.getElementById('error-descripcion');
+        const errorSku = document.getElementById('error-sku');
+
+        function limpiarErrores() {
+            [errorCliente, errorCategoria, errorDescripcion, errorSku].forEach(e => e.textContent = '');
+            [cliente, categoria, descripcion, sku].forEach(i => i.classList.remove('input-error'));
+        }
+
+        function error(input, label, msg) {
+            label.textContent = msg;
+            input.classList.add('input-error');
+        }
+
+        // CARGA DE DATOS
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Clientes
+            const resCli = await fetch(`${URL_BASE}/usuarios?tipo=2`);
+            const clientes = await resCli.json();
+            cliente.innerHTML = '<option value="" disabled selected>Seleccione Cliente</option>' +
+                clientes.map(c => `<option value="${c.ID}">${c.Nombre}</option>`).join('');
+
+            // Categorías
+            const resCat = await fetch(`${URL_BASE}/categorias`);
+            const categorias = await resCat.json();
+            categoria.innerHTML = '<option value="" disabled selected>Seleccione Categoría</option>' +
+                categorias.map(c => `<option value="${c.ID}">${c.Categoria}</option>`).join('');
+        });
+
+        // SUBMIT
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            limpiarErrores();
+
+            let ok = true;
+
+            if (!cliente.value) {
+                error(cliente, errorCliente, "Seleccione un cliente");
+                ok = false;
+            }
+
+            if (!categoria.value) {
+                error(categoria, errorCategoria, "Seleccione una categoría");
+                ok = false;
+            }
+
+            if (descripcion.value.trim().length < 3) {
+                error(descripcion, errorDescripcion, "La descripción es obligatoria");
+                ok = false;
+            }
+
+            if (sku.value.trim().length < 2) {
+                error(sku, errorSku, "El SKU es obligatorio");
+                ok = false;
+            }
+
+            if (!ok) return;
+
+            const payload = {
+                id_cliente: cliente.value,
+                id_categoria: categoria.value,
+                descripcion: descripcion.value.trim(),
+                sku: sku.value.trim()
+            };
+
+            try {
+                const res = await fetch(`${URL_BASE}/agregar-producto`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    mostrarToast(result.message, "exito");
+                    form.reset();
+                } else {
+                    mostrarToast(result.message, "aviso");
+                }
+
+            } catch {
+                mostrarToast("Error de conexión con el servidor.", "error");
+            }
+        });
+
+        // Limpieza en tiempo real
+        [cliente, categoria, descripcion, sku].forEach(i => {
+            i.addEventListener('input', limpiarErrores);
+            i.addEventListener('change', limpiarErrores);
+        });
+    </script>
+
+    <div class="toast" id="toast"></div>
+
+</body>
+
+</html>

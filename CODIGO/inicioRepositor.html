@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Repositor - Grupo Solvens</title>
+
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+
+    <link rel="stylesheet" href="style/inicio.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left"></div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenedor-principal">
+        <div class="bienvenida">
+            <h1>Panel de <span id="nombreRepositor">Repositor</span></h1>
+            <p>Gestión de inventario y stock</p>
+        </div>
+
+        <div class="grid-acciones">
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-circle-plus"></i>
+                <h3>Nueva Visita</h3>
+                <p>Carga en el sistema la visita realizada</p>
+                <a class="btn-entrar" href="cargar_visita.html">Nueva Visita</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-contacto">
+        <p>Área de Depósito | Grupo Solvens</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const nombre = localStorage.getItem('nombreUsuario');
+            const id = localStorage.getItem('id_usuario');
+            if (!id) {
+                window.location.href = 'login.html';
+                return;
+            }
+            if (nombre) {
+                const span = document.getElementById('nombreRepositor');
+                if (span) span.textContent = nombre;
+            }
+        });
+    </script>
+
+    <script>
+        document.querySelectorAll(".tarjeta-accion").forEach(function(card) {
+            var link = card.querySelector(".btn-entrar");
+            if (link) {
+                card.style.cursor = "pointer";
+                card.addEventListener("click", function(e) {
+                    if (!e.target.closest(".btn-entrar")) {
+                        window.location.href = link.href;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

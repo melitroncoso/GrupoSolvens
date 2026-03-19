@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrador - Grupo Solvens</title>
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/inicio.css">
+    <link rel="stylesheet" href="style/inicioAdmin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left"></div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenedor-principal">
+        <div class="bienvenida">
+            <h1>Panel de <span>Administrador</span></h1>
+            <p>Gestión interna del sistema</p>
+        </div>
+        <div class="grid-acciones">
+        <!-- TEMPORAL: descomentar cuando esté lista la sección de productos
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <h3>Administración Producto</h3>
+                <p>Gestión de productos del sistema.</p>
+                <a class="btn-entrar" href="Admin_gestion_producto.html">Gestionar Productos</a>
+            </div>
+        -->
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-users-gear"></i>
+                <h3>Administración Usuario</h3>
+                <p>Control de accesos, roles y perfiles de empleados y clientes.</p>
+                <a class="btn-entrar" href="Admin_gestion_usuario.html">Gestionar Usuarios</a>
+            </div>
+
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-layer-group"></i>
+                <h3>Administración Cadena</h3>
+                <p>Configuración y gestión de las distintas cadenas comerciales.</p>
+                <a class="btn-entrar" href="Admin_gestion_cadena.html">Gestionar Cadenas</a>
+            </div>
+
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-shop"></i>
+                <h3>Administración Sucursal</h3>
+                <p>Administración de puntos de venta y ubicaciones físicas.</p>
+                <a class="btn-entrar" href="Admin_gestion_sucursal.html">Gestionar Sucursales</a>
+            </div>
+
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-calendar-check"></i>
+                <h3>Visitas</h3>
+                <p>Revisión y seguimiento de visitas, productos e imágenes relevadas.</p>
+                <a class="btn-entrar" href="Admin_gestion_visitas.html">Ver Visitas</a>
+            </div>
+
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-tags"></i>
+                <h3>Administración Categoría</h3>
+                <p>Organización de productos por familias y categorías lógicas.</p>
+                <a class="btn-entrar" href="Admin_gestion_categoria.html">Gestionar Categorías</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-contacto">
+        <p>Panel de Control Interno | Grupo Solvens</p>
+    </footer>
+
+    <script>
+        document.querySelectorAll(".tarjeta-accion").forEach(function(card) {
+            var link = card.querySelector(".btn-entrar");
+            if (link) {
+                card.style.cursor = "pointer";
+                card.addEventListener("click", function(e) {
+                    if (!e.target.closest(".btn-entrar")) {
+                        window.location.href = link.href;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
