@@ -2,17 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import bcrypt from 'bcrypt';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { query, getClient } from './conexion.mjs';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(express.static('../'));
-app.use('/IMG', express.static('../../IMG'));
+app.use(express.static(path.join(__dirname, '..')));
+app.use('/IMG', express.static(path.join(__dirname, '..', '..', 'IMG')));
 
 // ── R2 CLIENT ────────────────────────────────────────────────────────────────
 const r2 = new S3Client({
