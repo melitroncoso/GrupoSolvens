@@ -18,6 +18,10 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '..')));
 app.use('/IMG', express.static(path.join(__dirname, '..', '..', 'IMG')));
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'login.html'));
+});
+
 // ── R2 CLIENT ────────────────────────────────────────────────────────────────
 const r2 = new S3Client({
     region: 'auto',
