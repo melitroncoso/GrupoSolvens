@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'login.html'));
 });
 
-// ── R2 CLIENT ────────────────────────────────────────────────────────────────
+// ── R2 CLIENT ───────────────────────────────────────────────────────────────
 const r2 = new S3Client({
     region: 'auto',
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
