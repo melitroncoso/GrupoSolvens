@@ -25,6 +25,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 1000;
+    width: 100%;
 }
 
 .logo-nav {
@@ -82,6 +83,7 @@ body {
     display: flex;
     gap: 20px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .visita-header .sub i {
@@ -98,7 +100,6 @@ body {
     justify-content: center;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
-    
 }
 
 /* Espaciado lateral via pseudo-elementos: evita el bug de Chromium
@@ -107,7 +108,6 @@ body {
 .galeria-grid::after {
     content: '';
     flex: 0 0 100px;
-    /* mismo ancho que las flechas nav + su padding */
 }
 
 /* Centrado si hay pocos elementos y no rebalsan el contenedor */
@@ -121,7 +121,6 @@ body {
     display: none;
 }
 
-
 /* Ocultar scrollbar en Chrome/Safari */
 .galeria-grid::-webkit-scrollbar {
     display: none;
@@ -130,7 +129,6 @@ body {
 .foto-card {
     position: relative;
     flex: 0 0 calc((100% - 64px) / 3);
-    /* Regresamos al ancho original */
     cursor: pointer;
     border-radius: 20px;
     overflow: hidden;
@@ -161,7 +159,6 @@ body {
     height: 100%;
     max-height: 500px;
     object-fit: contain;
-    /* Garantiza imagen completa */
     transition: transform 0.5s ease;
 }
 
@@ -184,9 +181,7 @@ body {
     transition: all 0.3s;
     z-index: 10;
     opacity: 1;
-    /* Siempre visible */
     transform: translateY(0);
-    /* Siempre en posición */
 }
 
 .foto-card:hover .btn-rotar-gallery {
@@ -308,15 +303,16 @@ body {
     gap: 30px;
     backdrop-filter: blur(20px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    max-width: calc(100vw - 40px);
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .btn-control-inline {
     background: #ef4444;
     color: #ffffff;
-    /* Asegurar icono blanco */
     border: none;
     width: 44px;
-    /* Un poco más grande para ser el círculo rojo del reporte */
     height: 44px;
     border-radius: 50%;
     cursor: pointer;
@@ -324,7 +320,6 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    /* Icono más grande */
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     margin-left: 20px;
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
@@ -345,8 +340,6 @@ body {
 .btn-control-inline:hover i {
     color: #ef4444 !important;
 }
-
-
 
 .lightbox-info span {
     font-size: 15px;
@@ -382,7 +375,6 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    /* Círculo perfecto */
     cursor: pointer;
     font-size: 24px;
     pointer-events: auto;
@@ -390,8 +382,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn-nav-visita:hover {
@@ -402,8 +392,8 @@ body {
 }
 
 @media (max-width: 1024px) {
-    .galeria-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .foto-card {
+        flex: 0 0 calc((100% - 32px) / 2);
     }
 }
 
@@ -423,18 +413,78 @@ body {
     }
 
     .galeria-grid {
-        grid-template-columns: 1fr;
-        padding: 20px 60px;
+        padding: 20px 16px;
+        gap: 16px;
+    }
+
+    .foto-card {
+        flex: 0 0 min(280px, 80vw);
     }
 
     .contenido {
-        padding: 0 20px;
+        padding: 0 16px;
+        margin: 24px auto;
     }
 
     .visita-header h1 {
         font-size: 2rem;
     }
+
+    .visita-header .sub {
+        font-size: 0.95rem;
+        gap: 12px;
+    }
+
+    .lightbox {
+        padding: 20px 16px;
+    }
+
+    .lightbox-prev {
+        left: 10px;
+    }
+
+    .lightbox-next {
+        right: 10px;
+    }
+
+    .lightbox-info {
+        bottom: 16px;
+        padding: 10px 16px;
+        gap: 12px;
+        border-radius: 20px;
+    }
+
+    .lightbox-controls {
+        top: 16px;
+        right: 16px;
+        gap: 10px;
+    }
+
+    .btn-control {
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+    }
 }
+
+@media (max-width: 480px) {
+    .header {
+        padding: 10px 14px;
+    }
+
+    .logo-nav {
+        height: 36px;
+    }
+
+    .visita-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .foto-card {
+        flex: 0 0 min(240px, 85vw);
+    }
+}
+
 /* ── BTN-VOLVER (versión vista_fotos) ── */
 .btn-volver {
     display: flex;
@@ -609,6 +659,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    max-width: calc(100vw - 40px);
 }
 
 .toast.visible {
@@ -765,6 +816,7 @@ body {
 
     .btn-pptx {
         padding: 10px;
+        margin-right: 8px;
     }
 }
 
@@ -778,6 +830,7 @@ body {
 .botones-filtro-row {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 /* ── BTN TOGGLE SIDEBAR (fotos pages) ── */
