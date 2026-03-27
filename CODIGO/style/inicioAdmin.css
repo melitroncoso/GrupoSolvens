@@ -34,5 +34,10 @@
 @media (max-width: 600px) {
     .grid-acciones {
         grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .tarjeta-accion {
+        padding: 24px 20px;
     }
 }
