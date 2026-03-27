@@ -34,14 +34,14 @@ body::before {
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     padding: 10px 20px;
-    display: flex; 
+    display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #333;
     position: sticky;
     top: 0;
     z-index: 1000;
-    flex-wrap: wrap; 
+    width: 100%;
 }
 
 .header-left {
@@ -91,10 +91,11 @@ body::before {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center; 
+    justify-content: center;
     align-items: center;
     padding: 20px;
     max-width: 1100px;
+    width: 100%;
     margin: 0 auto;
     text-align: center;
 }
@@ -124,7 +125,7 @@ body::before {
     justify-content: center;
     align-items: center;
     gap: 30px;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
 }
 
 
@@ -193,27 +194,55 @@ body::before {
 }
 
 .footer-contacto {
+    width: 100%;
     background: rgba(0, 0, 0, 0.8);
     padding: 20px;
     text-align: center;
     color: #666;
     font-size: 13px;
     border-top: 1px solid #333;
+    margin-top: auto;
 }
 
 
 @media (max-width: 768px) {
-
     .header {
-        flex-direction: column;
-        gap: 10px;
+        padding: 10px 16px;
+        /* Mantener flex row en mobile para logo + botón salir */
     }
 
     .contenedor-principal {
-        padding: 20px 10px;
+        padding: 20px 16px;
     }
 
     .bienvenida h1 {
         font-size: 26px;
+    }
+
+    .bienvenida p {
+        margin-bottom: 30px;
+    }
+
+    .grid-acciones {
+        gap: 20px;
+    }
+
+    .tarjeta-accion {
+        padding: 28px 24px;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .bienvenida h1 {
+        font-size: 22px;
+    }
+
+    .tarjeta-accion i {
+        font-size: 38px;
+    }
+
+    .tarjeta-accion h3 {
+        font-size: 18px;
     }
 }
