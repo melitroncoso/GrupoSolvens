@@ -10,6 +10,8 @@ body {
     background-color: #1a1a1a;
     min-height: 100vh;
     color: #ffffff;
+    display: flex;
+    flex-direction: column;
     position: relative;
     overflow-x: hidden;
 }
@@ -39,6 +41,7 @@ body::before {
     position: sticky;
     top: 0;
     z-index: 1000;
+    width: 100%;
 }
 
 .header-left {
@@ -96,8 +99,10 @@ body::before {
 /* ── CONTENEDOR ── */
 .contenedor {
     max-width: 760px;
+    width: 100%;
     margin: 40px auto;
     padding: 0 24px 60px;
+    flex: 1;
 }
 
 /* ── TÍTULOS ── */
@@ -377,6 +382,7 @@ select option {
     pointer-events: none;
     transition: all 0.4s ease;
     z-index: 9999;
+    max-width: calc(100vw - 40px);
 }
 
 /* Estado visible */
@@ -387,7 +393,6 @@ select option {
 
 .toast-exito i {
     color: #22c55e;
-    /* verde éxito */
     font-size: 18px;
 }
 
@@ -456,17 +461,42 @@ select option {
 }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .header {
-        padding: 15px 20px;
+        padding: 10px 18px;
+        grid-template-columns: 60px 1fr 60px;
+    }
+
+    .logo-nav {
+        height: 42px;
     }
 
     .contenedor {
+        margin: 24px auto;
         padding: 0 16px 60px;
     }
 
     .page-titulo {
         font-size: 26px;
+    }
+}
+
+@media (max-width: 600px) {
+    .header {
+        padding: 10px 14px;
+        grid-template-columns: 50px 1fr 50px;
+    }
+
+    .logo-nav {
+        height: 36px;
+    }
+
+    .contenedor {
+        padding: 0 12px 60px;
+    }
+
+    .page-titulo {
+        font-size: 22px;
     }
 
     .prod-item {
@@ -503,6 +533,7 @@ select option {
         font-size: 12px;
     }
 }
+
 /* ── ÍCONOS INLINE (cargar_visita) ── */
 .icono-btn {
     margin-right: 8px;
