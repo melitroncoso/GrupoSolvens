@@ -38,6 +38,7 @@ body::before {
     position: sticky;
     top: 0;
     z-index: 1000;
+    width: 100%;
 }
 
 .header-left,
@@ -228,6 +229,7 @@ button:active {
     display: none;
     z-index: 9999;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    max-width: calc(100vw - 48px);
 }
 
 #toast.exito {
@@ -367,7 +369,16 @@ button:active {
     }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
+    .header {
+        padding: 10px 12px;
+        grid-template-columns: 50px 1fr 50px;
+    }
+
+    .logo-nav {
+        height: 36px;
+    }
+
     h1 {
         font-size: 22px;
     }
@@ -381,7 +392,12 @@ button:active {
         font-size: 13px;
         padding: 11px 12px;
     }
+
+    .formulario {
+        padding: 16px;
+    }
 }
+
 /* ── Toast con clase .visible (páginas de eliminar) ── */
 .toast {
     position: fixed;
@@ -397,7 +413,7 @@ button:active {
     transform: translateY(10px);
     transition: opacity 0.3s, transform 0.3s;
     pointer-events: none;
-    max-width: 360px;
+    max-width: min(360px, calc(100vw - 40px));
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
