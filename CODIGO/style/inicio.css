@@ -34,8 +34,8 @@ body::before {
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 120px 1fr 120px;
     align-items: center;
     border-bottom: 1px solid #333;
     position: sticky;
@@ -49,11 +49,9 @@ body::before {
 }
 
 .header-center {
-    flex: 1;
     display: flex;
     justify-content: center;
 }
-
 
 .header-right {
     display: flex;
@@ -207,7 +205,11 @@ body::before {
 @media (max-width: 768px) {
     .header {
         padding: 10px 16px;
-        /* Mantener flex row en mobile para logo + botón salir */
+        grid-template-columns: 60px 1fr 60px;
+    }
+
+    .logo-nav {
+        max-height: 42px;
     }
 
     .contenedor-principal {
