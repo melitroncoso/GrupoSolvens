@@ -59,6 +59,55 @@ const upload = multer({
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HELPERS DE ZONA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Devuelve los IDs de zona que un repositor puede ver.
+// Si su zona es GBA o Buenos Aires, puede ver sucursales de ambas zonas.
+// Si no tiene zona asignada, devuelve tieneZona=false (sin acceso).
+async function obtenerZonasPermitidas(id_repo) {
+    const result = await query(
+        `SELECT u.id_zona, z.nombre AS zona_nombre
+         FROM usuario u
+         LEFT JOIN zona z ON u.id_zona = z.id
+         WHERE u.id = $1`,
+        [id_repo]
+    );
+
+    if (result.rows.length === 0) return { zonasIds: [], tieneZona: false };
+
+    const { id_zona, zona_nombre } = result.rows[0];
+
+    if (!id_zona) return { zonasIds: [], tieneZona: false };
+
+    const zonaUpper = zona_nombre.toUpperCase().trim();
+    const esGBA     = zonaUpper === 'GBA';
+    const esBsAs    = zonaUpper === 'BUENOS AIRES';
+
+    if (esGBA || esBsAs) {
+        // Ambas zonas son visibles entre sí
+        const ambas = await query(
+            `SELECT id FROM zona WHERE UPPER(TRIM(nombre)) IN ('GBA', 'BUENOS AIRES')`
+        );
+        return { zonasIds: ambas.rows.map(r => r.id), tieneZona: true };
+    }
+
+    return { zonasIds: [id_zona], tieneZona: true };
+}
+
+// Construye el fragmento SQL "AND sz.id_zona IN ($n, $n+1, ...)"
+// para insertar en queries que ya tienen parámetros previos.
+function buildZonaClause(zonasIds, startIdx) {
+    if (zonasIds.length === 0) return { clause: 'AND 1=0', params: [] }; // sin acceso
+    const placeholders = zonasIds.map((_, i) => `$${startIdx + i}`).join(', ');
+    return {
+        clause: `AND sz.id_zona IN (${placeholders})`,
+        params: zonasIds,
+    };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CADENAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -172,9 +221,22 @@ app.get('/api/tipos-usuario', async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.post('/api/crear-usuario', async (req, res, next) => {
-    const { nombre, id_tipo, mail, usuario, clave, sucursalesIds } = req.body;
+    const { nombre, id_tipo, mail, usuario, clave, sucursalesIds, id_zona } = req.body;
     const client = await getClient();
     try {
+        // Verificar si el tipo es repositor para validar zona obligatoria
+        const tipoRow = await client.query(
+            'SELECT tipo FROM tipo_usuario WHERE id = $1', [id_tipo]
+        );
+        if (tipoRow.rows.length === 0)
+            return res.status(400).json({ success: false, message: 'Tipo de usuario inválido.' });
+
+        const esRepositor = tipoRow.rows[0].tipo.toLowerCase() === 'repositor';
+
+        if (esRepositor && !id_zona) {
+            return res.status(400).json({ success: false, message: 'Los repositores deben tener una zona asignada.' });
+        }
+
         // Verificar duplicado
         const existe = await client.query(
             'SELECT usuario, mail FROM usuario WHERE usuario = $1 OR mail = $2',
@@ -193,9 +255,9 @@ app.post('/api/crear-usuario', async (req, res, next) => {
         await client.query('BEGIN');
 
         const userRes = await client.query(
-            `INSERT INTO usuario (nombre, id_tipo_usuario, mail, usuario, clave)
-             VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-            [nombre, id_tipo, mail, usuario, hashedPass]
+            `INSERT INTO usuario (nombre, id_tipo_usuario, mail, usuario, clave, id_zona)
+             VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+            [nombre, id_tipo, mail, usuario, hashedPass, id_zona || null]
         );
         const newUserId = userRes.rows[0].id;
 
@@ -391,15 +453,32 @@ app.get('/api/productos-cliente', async (req, res, next) => {
 // SUCURSALES DE UN CLIENTE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// El repositor se identifica por id_repo (viene del localStorage en el frontend).
+// La zona del repositor se lee siempre desde BD — nunca se confía en el frontend.
 app.get('/api/mis-sucursales', async (req, res, next) => {
-    const { id_cliente } = req.query;
+    const { id_cliente, id_repo } = req.query;
+
+    if (!id_repo) {
+        return res.status(400).json({ error: 'Falta id_repo para aplicar filtro de zona.' });
+    }
+
     try {
+        const { zonasIds, tieneZona } = await obtenerZonasPermitidas(id_repo);
+
+        if (!tieneZona) {
+            return res.status(403).json({ error: 'El repositor no tiene zona asignada.' });
+        }
+
+        const { clause, params } = buildZonaClause(zonasIds, 2); // $1 = id_cliente
+
         const result = await query(
             `SELECT s.id AS "ID", s.calle AS "Calle", s.altura AS "Altura", s.localidad AS "Localidad"
              FROM sucursal s
              JOIN abastece a ON s.id = a.id_sucursal
-             WHERE a.id_cliente = $1`,
-            [id_cliente]
+             JOIN subzona sz ON s.id_subzona = sz.id
+             WHERE a.id_cliente = $1
+             ${clause}`,
+            [id_cliente, ...params]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
@@ -439,6 +518,30 @@ app.post('/api/cargar-visita', upload.array('imagenes', 3), async (req, res, nex
     const client = await getClient();
 
     try {
+        // Validar que la sucursal pertenece a la zona del repositor (validación backend obligatoria)
+        const { zonasIds, tieneZona } = await obtenerZonasPermitidas(id_repo);
+
+        if (!tieneZona) {
+            return res.status(403).json({ success: false, error: 'El repositor no tiene zona asignada.' });
+        }
+
+        const { clause, params: zonaParams } = buildZonaClause(zonasIds, 2); // $1 = id_sucursal
+
+        const sucursalCheck = await query(
+            `SELECT s.id FROM sucursal s
+             JOIN subzona sz ON s.id_subzona = sz.id
+             WHERE s.id = $1
+             ${clause}`,
+            [id_sucursal, ...zonaParams]
+        );
+
+        if (sucursalCheck.rows.length === 0) {
+            return res.status(403).json({
+                success: false,
+                error: 'La sucursal seleccionada no pertenece a tu zona asignada.'
+            });
+        }
+
         await client.query('BEGIN');
 
         // A. Insertar visita

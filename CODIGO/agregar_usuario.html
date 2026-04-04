@@ -47,6 +47,16 @@
                 </div>
             </div>
 
+            <!-- ZONA: solo visible si el rol seleccionado es "repositor" -->
+            <div id="seccion-zona" style="display:none;">
+                <div class="campo">
+                    <select id="zona-usuario" required>
+                        <option value="" disabled selected>Seleccione una Zona</option>
+                    </select>
+                    <small id="error-zona"></small>
+                </div>
+            </div>
+
             <div class="campo">
                 <input type="email" id="mail" placeholder="Correo Electrónico" required>
                 <small id="error-mail"></small>
@@ -90,6 +100,8 @@
         const URL_BASE = '/api';
         const form = document.getElementById('form-usuario');
         const selectTipo = document.getElementById('tipo-usuario');
+        const selectZona = document.getElementById('zona-usuario');
+        const seccionZona = document.getElementById('seccion-zona');
         const seccionAbastece = document.getElementById('seccion-abastece');
         const filtroCadena = document.getElementById('filtro-cadena-abastece');
         const listaCheck = document.getElementById('lista-sucursales-check');
@@ -124,18 +136,37 @@
                 const data = await res.json();
                 selectTipo.innerHTML = '<option value="" disabled selected>Seleccione un Rol</option>';
                 data.forEach(t => {
-                    selectTipo.innerHTML += `<option value="${t.ID}">${t.Tipo}</option>`;
+                    selectTipo.innerHTML += `<option value="${t.id}">${t.tipo}</option>`;
                 });
             } catch (err) {
                 console.error("Error al cargar roles");
+            }
+
+            // Cargar zonas (se usan cuando el rol es repositor)
+            try {
+                const res = await fetch(`${URL_BASE}/zonas`);
+                const zonas = await res.json();
+                selectZona.innerHTML = '<option value="" disabled selected>Seleccione una Zona</option>';
+                zonas.forEach(z => {
+                    selectZona.innerHTML += `<option value="${z.id}">${z.nombre}</option>`;
+                });
+            } catch (err) {
+                console.error("Error al cargar zonas");
             }
         });
 
         // --- LÓGICA DE ROLES ---
         selectTipo.addEventListener('change', async () => {
             const rolSeleccionado = selectTipo.options[selectTipo.selectedIndex].text.toLowerCase();
+            const esRepositor = rolSeleccionado === 'repositor';
+            const esCliente   = rolSeleccionado === 'cliente';
 
-            if (rolSeleccionado === "cliente") {
+            // Zona: solo para repositores
+            seccionZona.style.display = esRepositor ? 'block' : 'none';
+            if (!esRepositor) selectZona.value = '';
+
+            // Sucursales que abastece: solo para clientes
+            if (esCliente) {
                 seccionAbastece.style.display = 'block';
                 if (filtroCadena.options.length <= 1) {
                     const res = await fetch(`${URL_BASE}/cadenas`);
@@ -198,6 +229,9 @@
             e.preventDefault();
             limpiarErrores();
 
+            const rolSeleccionado = selectTipo.options[selectTipo.selectedIndex]?.text?.toLowerCase() ?? '';
+            const esRepositor = rolSeleccionado === 'repositor';
+
             // Validaciones básicas antes de enviar
             let valid = true;
             if (document.getElementById('nombre').value.trim().length < 3) {
@@ -206,6 +240,11 @@
             }
             if (!selectTipo.value) {
                 setFieldError('tipo-usuario', 'Seleccione un rol');
+                valid = false;
+            }
+            // Zona obligatoria para repositores
+            if (esRepositor && !selectZona.value) {
+                setFieldError('zona-usuario', 'Los repositores deben tener una zona asignada');
                 valid = false;
             }
             if (!document.getElementById('mail').value.includes('@')) {
@@ -229,6 +268,7 @@
                 mail: document.getElementById('mail').value,
                 usuario: document.getElementById('usuario').value,
                 clave: document.getElementById('clave').value,
+                id_zona: esRepositor ? selectZona.value : null,
                 sucursalesIds: Array.from(sucursalesSeleccionadas)
             };
 
@@ -247,6 +287,7 @@
                     sucursalesSeleccionadas.clear();
                     actualizarContador();
                     seccionAbastece.style.display = 'none';
+                    seccionZona.style.display = 'none';
                 } else {
                     mostrarToast(result.message, "aviso");
                 }
