@@ -108,6 +108,12 @@
         <span id="toast-fotos-texto"></span>
     </div>
 
+    <!-- ── TOAST ERROR ── -->
+    <div id="toast-error" class="toast-exito toast-error-custom">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="toast-error-texto"></span>
+    </div>
+
     <script>
         // --- ESTADO ---
         let productosOriginales = [];
@@ -150,7 +156,7 @@
             datosIngresados = {};
 
             if (!idRepo) {
-                alert('Sesión expirada. Por favor volvé a iniciar sesión.');
+                mostrarToastError('Sesión expirada. Por favor volvé a iniciar sesión.');
                 return;
             }
 
@@ -158,7 +164,7 @@
 
             if (!resS.ok) {
                 const err = await resS.json();
-                alert(err.error || 'No se pudieron cargar las sucursales.');
+                mostrarToastError(err.error || 'No se pudieron cargar las sucursales.');
                 sucursalSel.innerHTML = '<option value="" disabled selected>Sin sucursales disponibles</option>';
                 sucursalSel.disabled = true;
                 return;
@@ -263,13 +269,13 @@
         document.getElementById('visitaForm').addEventListener('submit', async e => {
             e.preventDefault();
 
-            if (!clienteSel.value) { alert('Seleccioná un cliente.'); return; }
-            if (!sucursalSel.value) { alert('Seleccioná una sucursal.'); return; }
+            if (!clienteSel.value) { mostrarToastError('Seleccioná un cliente.'); return; }
+            if (!sucursalSel.value) { mostrarToastError('Seleccioná una sucursal.'); return; }
 
             const archivos = inputFotos.files;
             for (let i = 0; i < archivos.length; i++) {
                 if (archivos[i].size > 2 * 1024 * 1024) {
-                    alert(`La foto "${archivos[i].name}" supera el límite de 2MB.`);
+                    mostrarToastError(`La foto "${archivos[i].name}" supera el límite de 2MB.`);
                     return;
                 }
             }
@@ -287,11 +293,11 @@
             const productosParaEnviar = [];
 
             if (archivos.length === 0) {
-                alert('Cargá al menos una foto.');
+                mostrarToastError('Cargá al menos una foto.');
                 return;
             }
 
-            if (!idRepo) { alert('Sesión expirada.'); return; }
+            if (!idRepo) { mostrarToastError('Sesión expirada.'); return; }
 
             const formData = new FormData();
             formData.append('id_repo', idRepo);
@@ -312,10 +318,10 @@
                         window.location.href = 'inicioRepositor.html';
                     }, 1600);
                 } else {
-                    alert('Error: ' + (data.error || data.message));
+                    mostrarToastError('Error: ' + (data.error || data.message));
                 }
             } catch {
-                alert('Error de conexión con el servidor.');
+                mostrarToastError('Error de conexión con el servidor.');
             }
         });
 
@@ -332,6 +338,14 @@
             document.getElementById('toast-fotos-texto').textContent = mensaje;
             toast.classList.add('activo');
             setTimeout(() => toast.classList.remove('activo'), 2500);
+        }
+
+        // ── TOAST ERROR ──
+        function mostrarToastError(mensaje) {
+            const toast = document.getElementById('toast-error');
+            document.getElementById('toast-error-texto').textContent = mensaje;
+            toast.classList.add('activo');
+            setTimeout(() => toast.classList.remove('activo'), 3500);
         }
     </script>
 

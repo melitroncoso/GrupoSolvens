@@ -139,9 +139,17 @@
             document.getElementById('btnExportar').addEventListener('click', exportarExcel);
         });
 
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.classList.add('visible');
+            setTimeout(() => t.classList.remove('visible'), 3500);
+        }
+
         function exportarExcel() {
             if (!ultimaConsulta || ultimaConsulta.length === 0) {
-                alert('No hay datos para exportar');
+                mostrarToast('No hay datos para exportar', 'aviso');
                 return;
             }
             // preparar datos formato JSON para SheetJS
@@ -156,6 +164,7 @@
             XLSX.writeFile(libro, nombreArchivo);
         }
     </script>
+    <div class="toast" id="toast"></div>
 
 </body>
 

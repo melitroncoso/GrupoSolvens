@@ -541,3 +541,15 @@ select option {
 .icono-fotos-toast {
     color: #dc2626;
 }
+
+/* ── TOAST ERROR (cargar_visita) ── */
+.toast-error-custom {
+    background: rgba(20, 20, 20, 0.95) !important;
+    border-color: #dc2626 !important;
+    color: #f87171 !important;
+}
+
+.toast-error-custom i {
+    color: #dc2626 !important;
+    font-size: 18px;
+}

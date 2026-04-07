@@ -172,12 +172,21 @@
                 body: JSON.stringify(payload)
             });
 
-            if (res.ok) alert("✅ Abastecimiento actualizado correctamente.");
-            else alert("❌ Error al actualizar.");
+            if (res.ok) mostrarToast("✅ Abastecimiento actualizado correctamente.", "exito");
+            else mostrarToast("❌ Error al actualizar.", "error");
         };
 
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.classList.add('visible');
+            setTimeout(() => t.classList.remove('visible'), 3500);
+        }
+
         iniciar();
-    </script>
+    </script>    <div class="toast" id="toast"></div>
+
 </body>
 
 </html>
