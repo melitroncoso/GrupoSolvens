@@ -5,6 +5,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import bcrypt from 'bcrypt';
+import https from 'https';
+import http from 'http';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { query, getClient } from './conexion.mjs';
 
@@ -62,34 +64,29 @@ const upload = multer({
 // HELPERS DE ZONA
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// IDs de zona que comparten visibilidad total entre si.
+// Zona 1 = GBA, Zona 2 = CABA. Los repositores de cualquiera de estas dos zonas
+// ven sucursales de ambas (subzonas 1=Sur, 2=Oeste, 3=Norte, 4=Capital Federal).
+const ZONAS_COMPARTIDAS = [1, 2];
+
 // Devuelve los IDs de zona que un repositor puede ver.
-// Si su zona es GBA o Buenos Aires, puede ver sucursales de ambas zonas.
+// Si su zona esta en ZONAS_COMPARTIDAS, puede ver todas las zonas del grupo.
 // Si no tiene zona asignada, devuelve tieneZona=false (sin acceso).
 async function obtenerZonasPermitidas(id_repo) {
     const result = await query(
-        `SELECT u.id_zona, z.nombre AS zona_nombre
-         FROM usuario u
-         LEFT JOIN zona z ON u.id_zona = z.id
-         WHERE u.id = $1`,
+        `SELECT id_zona FROM usuario WHERE id = $1`,
         [id_repo]
     );
 
     if (result.rows.length === 0) return { zonasIds: [], tieneZona: false };
 
-    const { id_zona, zona_nombre } = result.rows[0];
+    const { id_zona } = result.rows[0];
 
     if (!id_zona) return { zonasIds: [], tieneZona: false };
 
-    const zonaUpper = zona_nombre.toUpperCase().trim();
-    const esGBA     = zonaUpper === 'GBA';
-    const esBsAs    = zonaUpper === 'BUENOS AIRES';
-
-    if (esGBA || esBsAs) {
-        // Ambas zonas son visibles entre sí
-        const ambas = await query(
-            `SELECT id FROM zona WHERE UPPER(TRIM(nombre)) IN ('GBA', 'BUENOS AIRES')`
-        );
-        return { zonasIds: ambas.rows.map(r => r.id), tieneZona: true };
+    // Si el repositor pertenece a zona 1 o 2, ve sucursales de ambas zonas
+    if (ZONAS_COMPARTIDAS.includes(id_zona)) {
+        return { zonasIds: ZONAS_COMPARTIDAS, tieneZona: true };
     }
 
     return { zonasIds: [id_zona], tieneZona: true };
@@ -973,6 +970,27 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
 
         res.json(result.rows);
     } catch (e) { next(e); }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROXY DE IMÁGENES R2 (evita CORS en el frontend al generar PPTX)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/proxy-imagen', (req, res, next) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).send('Falta url');
+
+    if (!url.startsWith(process.env.R2_PUBLIC_URL)) {
+        return res.status(403).send('URL no permitida');
+    }
+
+    const client = url.startsWith('https') ? https : http;
+    client.get(url, (imgRes) => {
+        res.setHeader('Content-Type', imgRes.headers['content-type'] || 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        imgRes.pipe(res);
+    }).on('error', next);
 });
 
 
