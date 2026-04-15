@@ -426,9 +426,12 @@
         // --- LÓGICA GENERACIÓN PPTX (ESTILO PREMIUM) ---
         async function imgUrlToBase64(url) {
             try {
-                // Rutear por el proxy del backend para evitar bloqueo CORS con R2
-                const proxyUrl = `/api/proxy-imagen?url=${encodeURIComponent(url)}`;
-                const res = await fetch(proxyUrl);
+                let fetchUrl = url;
+                // Rutear por el proxy del backend para evitar bloqueo CORS con R2, solo si es URL externa
+                if (url.startsWith('http')) {
+                    fetchUrl = `/api/proxy-imagen?url=${encodeURIComponent(url)}`;
+                }
+                const res = await fetch(fetchUrl);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const blob = await res.blob();
                 return await new Promise((resolve, reject) => {
