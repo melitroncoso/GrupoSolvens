@@ -469,10 +469,12 @@ app.get('/api/mis-sucursales', async (req, res, next) => {
         const { clause, params } = buildZonaClause(zonasIds, 2); // $1 = id_cliente
 
         const result = await query(
-            `SELECT s.id AS "ID", s.calle AS "Calle", s.altura AS "Altura", s.localidad AS "Localidad"
+            `SELECT s.id AS "ID", s.calle AS "Calle", s.altura AS "Altura", s.localidad AS "Localidad",
+                    ca.nombre AS "Cadena"
              FROM sucursal s
-             JOIN abastece a ON s.id = a.id_sucursal
-             JOIN subzona sz ON s.id_subzona = sz.id
+             JOIN abastece a  ON s.id = a.id_sucursal
+             JOIN subzona sz  ON s.id_subzona = sz.id
+             JOIN cadena ca   ON s.id_cadena = ca.id
              WHERE a.id_cliente = $1
              ${clause}`,
             [id_cliente, ...params]
