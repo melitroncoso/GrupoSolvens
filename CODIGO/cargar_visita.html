@@ -323,6 +323,81 @@
             }
         });
 
+        const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+
+        const readFileAsDataURL = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        const loadImage = src => new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+        });
+
+        const canvasToBlob = (canvas, type, quality) => new Promise((resolve, reject) => {
+            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo crear blob')), type, quality);
+        });
+
+        const compressImageFile = async (file, maxSize = MAX_IMAGE_SIZE) => {
+            if (!file.type.startsWith('image/') || file.size <= maxSize) {
+                return file;
+            }
+
+            const dataUrl = await readFileAsDataURL(file);
+            const img = await loadImage(dataUrl);
+
+            let quality = 0.92;
+            const minQuality = 0.25;
+            let width = img.naturalWidth;
+            let height = img.naturalHeight;
+            let scale = 1;
+            let blob = null;
+            let outputType = file.type;
+
+            while (true) {
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.floor(width * scale));
+                canvas.height = Math.max(1, Math.floor(height * scale));
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                blob = await canvasToBlob(canvas, outputType, quality);
+
+                if (blob.size <= maxSize) {
+                    break;
+                }
+
+                if (quality > minQuality) {
+                    quality = Math.max(minQuality, quality - 0.12);
+                    continue;
+                }
+
+                if (scale > 0.4) {
+                    scale *= 0.85;
+                    continue;
+                }
+
+                if (outputType !== 'image/jpeg') {
+                    outputType = 'image/jpeg';
+                    quality = 0.75;
+                    continue;
+                }
+
+                break;
+            }
+
+            let outputName = file.name;
+            if (outputType === 'image/jpeg' && !/\.jpe?g$/i.test(outputName)) {
+                outputName = outputName.replace(/\.[^.]+$/, '.jpg');
+            }
+
+            return new File([blob], outputName, { type: outputType });
+        };
+
         // 7. SUBMIT
         document.getElementById('visitaForm').addEventListener('submit', async e => {
             e.preventDefault();
@@ -331,10 +406,17 @@
             if (!sucursalSel.value) { mostrarToastError('Seleccioná una sucursal.'); return; }
 
             const archivos = inputFotos.files;
+            const archivosParaSubir = [];
+            let comprimidas = 0;
+
             for (let i = 0; i < archivos.length; i++) {
-                if (archivos[i].size > 2 * 1024 * 1024) {
-                    mostrarToastError(`La foto "${archivos[i].name}" supera el límite de 2MB.`);
-                    return;
+                const archivo = archivos[i];
+                if (archivo.size > MAX_IMAGE_SIZE) {
+                    const comprimido = await compressImageFile(archivo);
+                    archivosParaSubir.push(comprimido);
+                    comprimidas += comprimido.size < archivo.size ? 1 : 0;
+                } else {
+                    archivosParaSubir.push(archivo);
                 }
             }
 
@@ -363,8 +445,8 @@
             formData.append('id_sucursal', sucursalSel.value);
             formData.append('productos', JSON.stringify(productosParaEnviar));
 
-            for (let i = 0; i < archivos.length; i++) {
-                formData.append('imagenes', archivos[i]);
+            for (let i = 0; i < archivosParaSubir.length; i++) {
+                formData.append('imagenes', archivosParaSubir[i]);
             }
 
             try {

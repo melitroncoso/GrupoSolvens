@@ -189,6 +189,7 @@
                 return;
             }
             visitasData = await res.json();
+            visitasData.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             if (visitasData.length === 0) {
                 document.getElementById('contenedorVisitas').innerHTML = '<p>No hay imágenes cargadas.</p>';
                 return;
