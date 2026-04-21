@@ -719,14 +719,36 @@ app.get('/api/imagenes-visitas', async (req, res, next) => {
 
 app.patch('/api/imagen/:id/estado', async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
-    const { estado } = req.body;
+    const { estado, rotacion } = req.body;
     const valid = ['Pendiente', 'Aprobado', 'Rechazado'];
     if (isNaN(id) || !valid.includes(estado))
         return res.status(400).json({ success: false, message: 'ID o estado inválido' });
     try {
-        const result = await query('UPDATE imagen SET estado = $1 WHERE id = $2', [estado, id]);
-        if (result.rowCount === 0)
+        const check = await query('SELECT ruta_imagen FROM imagen WHERE id = $1', [id]);
+        if (check.rows.length === 0)
             return res.status(404).json({ success: false, message: 'Imagen no encontrada' });
+
+        if (estado === 'Aprobado' && rotacion && rotacion > 0) {
+            const url = check.rows[0].ruta_imagen;
+            const filename = url.substring(url.lastIndexOf('/') + 1);
+            try {
+                const imgRes = await fetch(url);
+                if (imgRes.ok) {
+                    const arrayBuffer = await imgRes.arrayBuffer();
+                    const rotadoBuffer = await sharp(Buffer.from(arrayBuffer)).rotate(rotacion).jpeg({ quality: 80 }).toBuffer();
+                    await r2.send(new PutObjectCommand({
+                        Bucket: R2_BUCKET,
+                        Key: filename,
+                        Body: rotadoBuffer,
+                        ContentType: 'image/jpeg',
+                    }));
+                }
+            } catch (err) {
+                console.error("Error al rotar imagen en R2:", err);
+            }
+        }
+
+        await query('UPDATE imagen SET estado = $1 WHERE id = $2', [estado, id]);
         res.json({ success: true });
     } catch (e) { next(e); }
 });
@@ -961,7 +983,7 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
                         JOIN imagen im ON im.id_visita = v2.id
                         WHERE v2.id_sucursal = s.id
                           AND v2.id_cliente = $1
-                          AND v2.fecha >= CURRENT_DATE - INTERVAL '15 days'
+                          AND DATE_TRUNC('month', v2.fecha) = DATE_TRUNC('month', CURRENT_DATE)
                    ) THEN 1 ELSE 0 END AS "TieneImagenes"
             FROM abastece a
             JOIN sucursal s ON a.id_sucursal = s.id

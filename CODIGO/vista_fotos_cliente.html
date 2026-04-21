@@ -143,10 +143,7 @@
     </div>
 
     <footer class="footer-contacto">
-        <p><i class="fa-solid fa-envelope"></i> <a href="/cdn-cgi/l/email-protection" class="__cf_email__"
-                data-cfemail="50333f3e243133243f10372225203f233f3c26353e237e333f3d">[email&#160;protected]</a> | <i
-                class="fa-solid fa-phone"></i> +54 11
-            1234-5678</p>
+        <p><i class="fa-solid fa-envelope"></i> <a href="mailto:NRossi@gruposolvens.com.ar">NRossi@gruposolvens.com.ar</a> | <i class="fa-solid fa-phone"></i> +54 11 6142-0293</p>
     </footer>
 
     <div class="lightbox" id="lightbox">
@@ -176,7 +173,7 @@
         </div>
     </div>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+    
     <script>
         const URL_BASE = '/api';
 
@@ -535,8 +532,25 @@
 
                 // --- B. DIAPOSITIVAS DE CONTENIDO ---
                 for (const v of ultimasVisitas) {
-                    const slide = pptx.addSlide();
-                    slide.bkgd = { color: 'F9F9F9' };
+                    let imageChunks = [];
+                    if (v.imagenes.length <= 3) {
+                        imageChunks.push(v.imagenes);
+                    } else if (v.imagenes.length === 4) {
+                        imageChunks.push(v.imagenes.slice(0, 2), v.imagenes.slice(2, 4));
+                    } else if (v.imagenes.length === 5) {
+                        imageChunks.push(v.imagenes.slice(0, 3), v.imagenes.slice(3, 5));
+                    } else {
+                        for (let k = 0; k < v.imagenes.length; k += 3) {
+                            imageChunks.push(v.imagenes.slice(k, k + 3));
+                        }
+                    }
+
+                    for (let cIdx = 0; cIdx < imageChunks.length; cIdx++) {
+                        const imgs = imageChunks[cIdx];
+                        const count = imgs.length;
+
+                        const slide = pptx.addSlide();
+                        slide.bkgd = { color: 'F9F9F9' };
 
                     // Header Rojo
                     slide.addShape(pptx.ShapeType.rect, {
@@ -555,7 +569,7 @@
                     }
 
                     const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                    slide.addText(`${v.cadena} | ${fechaStr}`, {
+                    slide.addText(`${v.cadena} | ${fechaStr}${imageChunks.length > 1 ? \` (Parte ${cIdx + 1})\` : ''}`, {
                         x: 1.5, y: 0.05, w: 8.3, h: 0.5,
                         fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                     });
@@ -568,8 +582,7 @@
 
                     // Layout dinámico centrado para 1, 2 o 3 imágenes
                     const areaY = 1.3, areaW = 9, areaH = 4.1;
-                    const imgs = v.imagenes.slice(0, 3); // Máximo de 3
-                    const count = imgs.length;
+                    // const count and imgs already defined above
                     const gutter = 0.3; // Espaciado entre fotos
 
                     let cW = (areaW - (count - 1) * gutter) / count;
@@ -593,7 +606,8 @@
                                 x: startX + i * (cW + gutter),
                                 y: areaY,
                                 sizing: { type: 'contain', w: cW, h: cH }
-                            });
+                                });
+                            }
                         }
                     }
                 }
