@@ -48,6 +48,7 @@
                         <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
                     <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione un rango de fechas:</p>
                         <div class="rango-fechas">
                             <div><label class="label-pequeno">Desde:</label><input type="date" class="input-fecha"
                                     id="fechaDesde"></div>
@@ -59,22 +60,11 @@
 
                 <div class="grupo-filtro">
                     <div class="filtro-header">
-                        <label class="label-filtro">Cliente</label>
+                        <label class="label-filtro">Cadenas</label>
                         <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
                     <div class="filtro-contenido">
-                        <select class="select-filtro" id="filtroCliente">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grupo-filtro">
-                    <div class="filtro-header">
-                        <label class="label-filtro">Cadena</label>
-                        <i class="fas fa-chevron-down icono-toggle"></i>
-                    </div>
-                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione la cadena:</p>
                         <select class="select-filtro" id="filtroCadena">
                             <option value="">Todas</option>
                         </select>
@@ -83,10 +73,11 @@
 
                 <div class="grupo-filtro">
                     <div class="filtro-header">
-                        <label class="label-filtro">Sucursal</label>
+                        <label class="label-filtro">Bocas</label>
                         <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
                     <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione la sucursal:</p>
                         <select class="select-filtro" id="filtroSucursal">
                             <option value="">Todas</option>
                         </select>
@@ -95,19 +86,33 @@
 
                 <div class="grupo-filtro">
                     <div class="filtro-header">
-                        <label class="label-filtro">Zona</label>
+                        <label class="label-filtro">Región</label>
                         <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
                     <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione la región (zona):</p>
                         <select class="select-filtro" id="filtroZona">
                             <option value="">Todas</option>
                         </select>
                     </div>
                 </div>
 
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Clientes</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione el cliente:</p>
+                        <select class="select-filtro" id="filtroCliente">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="botones-filtro">
-                    <button id="btnAplicarFiltros" class="btn-aplicar-filtros">Aplicar</button>
-                    <button id="btnLimpiarFiltros" class="btn-limpiar-filtros">Limpiar</button>
+                    <button class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar Filtros</button>
+                    <button class="btn-limpiar-filtros" id="btnLimpiarFiltros">Limpiar Filtros</button>
                 </div>
             </aside>
 
@@ -446,7 +451,32 @@
         document.getElementById('btnToggleSidebar').onclick = () => document.getElementById('sidebarFiltros').classList.add('activo');
         document.getElementById('btnCerrarSidebar').onclick = () => document.getElementById('sidebarFiltros').classList.remove('activo');
 
-        document.addEventListener('DOMContentLoaded', cargarVisitasAdmin);
+        // Grupos colapsables
+        document.querySelectorAll('.filtro-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const grupo = header.parentElement;
+                const contenido = header.nextElementSibling;
+                const icono = header.querySelector('.icono-toggle');
+                grupo.classList.toggle('colapsado');
+                if (grupo.classList.contains('colapsado')) {
+                    contenido.style.maxHeight = '0';
+                    icono.style.transform = 'rotate(-90deg)';
+                } else {
+                    contenido.style.maxHeight = contenido.scrollHeight + 'px';
+                    icono.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar grupos colapsados
+            document.querySelectorAll('.grupo-filtro').forEach(g => {
+                g.classList.add('colapsado');
+                g.querySelector('.filtro-contenido').style.maxHeight = '0';
+                g.querySelector('.icono-toggle').style.transform = 'rotate(-90deg)';
+            });
+            cargarVisitasAdmin();
+        });
     </script>
 </body>
 

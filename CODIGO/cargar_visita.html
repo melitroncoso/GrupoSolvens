@@ -236,6 +236,13 @@
             seccionProd.style.display = 'block';
             renderizar(productosOriginales);
             */
+            
+            // Actualizar label de fotos según el cliente (AGD = 5 fotos)
+            const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent;
+            const maxFotos = (nombreCliente && nombreCliente.toUpperCase().includes('AGD')) ? 5 : 3;
+            labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
+            inputFotos.value = '';
+            document.getElementById('previewFotos').innerHTML = '';
         });
 
         // 3. CAMBIO DE CADENA
@@ -292,19 +299,21 @@
         // 6. FOTOS
         inputFotos.addEventListener('change', function () {
             const previewContenedor = document.getElementById('previewFotos');
+            const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent;
+            const maxFotos = (nombreCliente && nombreCliente.toUpperCase().includes('AGD')) ? 5 : 3;
 
-            if (this.files.length > 3) {
+            if (this.files.length > maxFotos) {
                 this.value = '';
-                labelFotos.textContent = 'Seleccionar fotos (máx. 3)';
+                labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
                 previewContenedor.innerHTML = '';
-                mostrarToastFotos('Límite superado: solo se permiten 3 fotos');
+                mostrarToastFotos(`Límite superado: solo se permiten ${maxFotos} fotos`);
                 return;
             }
 
             const cant = this.files.length;
             labelFotos.textContent = cant > 0
                 ? `${cant} foto${cant > 1 ? 's' : ''} seleccionada${cant > 1 ? 's' : ''}`
-                : 'Seleccionar fotos (máx. 3)';
+                : `Seleccionar fotos (máx. ${maxFotos})`;
 
             previewContenedor.innerHTML = '';
             Array.from(this.files).forEach(file => {
@@ -316,10 +325,10 @@
                 previewContenedor.appendChild(img);
             });
 
-            if (cant === 3) {
-                mostrarToastFotos('3 de 3 fotos cargadas — límite alcanzado');
+            if (cant === maxFotos) {
+                mostrarToastFotos(`${maxFotos} de ${maxFotos} fotos cargadas — límite alcanzado`);
             } else if (cant > 0) {
-                mostrarToastFotos(`${cant} de 3 foto${cant > 1 ? 's' : ''} cargada${cant > 1 ? 's' : ''}`);
+                mostrarToastFotos(`${cant} de ${maxFotos} foto${cant > 1 ? 's' : ''} cargada${cant > 1 ? 's' : ''}`);
             }
         });
 

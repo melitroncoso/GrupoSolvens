@@ -110,14 +110,14 @@ function buildZonaClause(zonasIds, startIdx) {
 
 app.get('/api/tipos-cadena', async (req, res, next) => {
     try {
-        const result = await query('SELECT id, tipo FROM tipo_cadena');
+        const result = await query('SELECT id AS "ID", tipo AS "Tipo" FROM tipo_cadena');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
 
 app.get('/api/cadenas', async (req, res, next) => {
     try {
-        const result = await query('SELECT id, nombre FROM cadena');
+        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM cadena');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -154,7 +154,7 @@ app.delete('/api/eliminar-cadena/:id', async (req, res, next) => {
 
 app.get('/api/subzonas', async (req, res, next) => {
     try {
-        const result = await query('SELECT id, nombre FROM subzona');
+        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM subzona');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -162,7 +162,7 @@ app.get('/api/subzonas', async (req, res, next) => {
 app.get('/api/buscar-sucursales', async (req, res, next) => {
     const { id_cadena, id_subzona } = req.query;
     try {
-        let sql = 'SELECT id, calle, altura, localidad FROM sucursal WHERE id_cadena = $1';
+        let sql = 'SELECT id AS "ID", calle AS "Calle", altura AS "Altura", localidad AS "Localidad" FROM sucursal WHERE id_cadena = $1';
         const params = [id_cadena];
 
         if (id_subzona && id_subzona !== 'undefined' && id_subzona !== 'null' && id_subzona !== '') {
@@ -281,7 +281,7 @@ app.get('/api/usuarios', async (req, res, next) => {
     const { tipo } = req.query;
     try {
         const result = await query(
-            'SELECT id, nombre FROM usuario WHERE id_tipo_usuario = $1', [tipo]
+            'SELECT id AS "ID", nombre AS "Nombre" FROM usuario WHERE id_tipo_usuario = $1', [tipo]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
@@ -291,7 +291,7 @@ app.get('/api/buscar-usuarios-eliminar', async (req, res, next) => {
     const { q } = req.query;
     try {
         const result = await query(
-            `SELECT u.id, u.nombre, u.usuario, t.tipo
+            `SELECT u.id AS "ID", u.nombre AS "Nombre", u.usuario AS "Usuario", t.tipo AS "Tipo"
              FROM usuario u JOIN tipo_usuario t ON u.id_tipo_usuario = t.id
              WHERE u.nombre ILIKE $1 OR u.usuario ILIKE $1`,
             [`%${q}%`]
@@ -365,7 +365,7 @@ app.post('/login', async (req, res, next) => {
 
 app.get('/api/categorias', async (req, res, next) => {
     try {
-        const result = await query('SELECT id, categoria FROM categoria');
+        const result = await query('SELECT id AS "ID", categoria AS "Categoria" FROM categoria');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -374,7 +374,7 @@ app.get('/api/buscar-categorias', async (req, res, next) => {
     const { q } = req.query;
     try {
         const result = await query(
-            'SELECT id, categoria FROM categoria WHERE categoria ILIKE $1', [`%${q}%`]
+            'SELECT id AS "ID", categoria AS "Categoria" FROM categoria WHERE categoria ILIKE $1', [`%${q}%`]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
@@ -419,7 +419,7 @@ app.get('/api/buscar-productos', async (req, res, next) => {
     const { q } = req.query;
     try {
         const result = await query(
-            `SELECT p.id, p.descripcion, p.sku, u.nombre AS "Cliente"
+            `SELECT p.id AS "ID", p.descripcion AS "Descripcion", p.sku AS "SKU", u.nombre AS "Cliente"
              FROM producto p JOIN usuario u ON p.id_cliente = u.id
              WHERE p.descripcion ILIKE $1 OR p.sku ILIKE $1`,
             [`%${q}%`]
@@ -439,7 +439,7 @@ app.get('/api/productos-cliente', async (req, res, next) => {
     const { id_cliente } = req.query;
     try {
         const result = await query(
-            'SELECT id, descripcion FROM producto WHERE id_cliente = $1', [id_cliente]
+            'SELECT id AS "ID", descripcion AS "Descripcion" FROM producto WHERE id_cliente = $1', [id_cliente]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
