@@ -509,7 +509,7 @@ app.put('/api/actualizar-abastece', async (req, res, next) => {
 // CARGAR VISITA (con imágenes → R2)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-app.post('/api/cargar-visita', upload.array('imagenes', 3), async (req, res, next) => {
+app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, next) => {
     const { id_repo, id_cliente, id_sucursal, productos } = req.body;
     if (!productos) return res.status(400).json({ success: false, error: 'No hay productos' });
 
@@ -538,6 +538,18 @@ app.post('/api/cargar-visita', upload.array('imagenes', 3), async (req, res, nex
             return res.status(403).json({
                 success: false,
                 error: 'La sucursal seleccionada no pertenece a tu zona asignada.'
+            });
+        }
+
+        // Validar límite de fotos según cliente (AGD = 5, resto = 3)
+        const clienteRow = await query(`SELECT nombre FROM usuario WHERE id = $1`, [id_cliente]);
+        const nombreCliente = clienteRow.rows[0]?.nombre?.toUpperCase() || '';
+        const maxFotos = nombreCliente.includes('AGD') ? 5 : 3;
+
+        if (req.files && req.files.length > maxFotos) {
+            return res.status(400).json({
+                success: false,
+                error: `Solo se permiten ${maxFotos} foto${maxFotos > 1 ? 's' : ''} para este cliente.`
             });
         }
 
