@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import https from 'https';
 import http from 'http';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import PptxGenJS from 'pptxgenjs';
 import { query, getClient } from './conexion.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -581,8 +582,8 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
                 const urlPublica = await subirImagenR2(f.buffer, nombreArchivo);
 
                 await client.query(
-                    'INSERT INTO imagen (ruta_imagen, id_visita) VALUES ($1,$2)',
-                    [urlPublica, vId]
+                    'INSERT INTO imagen (ruta_imagen, id_visita, estado) VALUES ($1,$2,$3)',
+                    [urlPublica, vId, nombreCliente.includes('DEL VALLE') ? 'Aprobado' : 'Pendiente']
                 );
             }
         }
@@ -765,6 +766,74 @@ app.patch('/api/imagen/:id/estado', async (req, res, next) => {
     } catch (e) { next(e); }
 });
 
+app.get('/api/exportar-ppt', async (req, res, next) => {
+    const { cliente } = req.query;
+    if (!cliente) return res.status(400).json({ error: 'Cliente requerido' });
+
+    try {
+        // Obtener id_cliente
+        const clienteResult = await query('SELECT id FROM usuario WHERE nombre = $1', [cliente]);
+        if (clienteResult.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+        const idCliente = clienteResult.rows[0].id;
+
+        // Obtener sucursales que abastece el cliente
+        const sucursales = await query(`
+            SELECT s.id, s.calle, s.altura, s.localidad, ca.nombre AS cadena
+            FROM abastece a
+            JOIN sucursal s ON a.id_sucursal = s.id
+            JOIN cadena ca ON s.id_cadena = ca.id
+            WHERE a.id_cliente = $1
+        `, [idCliente]);
+
+        const pptx = new PptxGenJS();
+
+        for (const suc of sucursales.rows) {
+            // Obtener última visita aprobada a esta sucursal por este cliente
+            const visitaResult = await query(`
+                SELECT v.id, v.fecha, u.nombre AS repositor
+                FROM visita v
+                JOIN usuario u ON v.id_repo = u.id
+                WHERE v.id_cliente = $1 AND v.id_sucursal = $2
+                AND EXISTS (SELECT 1 FROM imagen im WHERE im.id_visita = v.id AND im.estado = 'Aprobado')
+                ORDER BY v.fecha DESC LIMIT 1
+            `, [idCliente, suc.id]);
+
+            if (visitaResult.rows.length === 0) continue;
+
+            const visita = visitaResult.rows[0];
+
+            // Obtener imágenes aprobadas de esa visita
+            const imagenes = await query(`
+                SELECT ruta_imagen FROM imagen WHERE id_visita = $1 AND estado = 'Aprobado'
+            `, [visita.id]);
+
+            const slide = pptx.addSlide();
+            slide.addText(`${suc.cadena} - ${suc.calle} ${suc.altura}, ${suc.localidad}`, { x: 0.5, y: 0.5, fontSize: 18 });
+            slide.addText(`Fecha: ${new Date(visita.fecha).toLocaleDateString('es-AR')}`, { x: 0.5, y: 0.8, fontSize: 14 });
+            slide.addText(`Repositor: ${visita.repositor}`, { x: 0.5, y: 1.0, fontSize: 14 });
+
+            // Agregar imágenes (máximo 4 por slide)
+            for (let i = 0; i < Math.min(imagenes.rows.length, 4); i++) {
+                const img = imagenes.rows[i];
+                try {
+                    const imgRes = await fetch(img.ruta_imagen);
+                    if (imgRes.ok) {
+                        const buffer = await imgRes.arrayBuffer();
+                        slide.addImage({ data: buffer, x: (i % 2) * 3, y: 1.5 + Math.floor(i / 2) * 2, w: 3, h: 2 });
+                    }
+                } catch (err) {
+                    console.error('Error fetching image:', err);
+                }
+            }
+        }
+
+        const buffer = await pptx.write({ outputType: 'nodebuffer' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+        res.setHeader('Content-Disposition', `attachment; filename="Evidencia_${cliente}.pptx"`);
+        res.send(buffer);
+    } catch (e) { next(e); }
+});
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // VISITAS
@@ -814,6 +883,30 @@ app.get('/api/visitas-pendientes', async (req, res, next) => {
             )
             ORDER BY v.fecha DESC
         `);
+        res.json(result.rows);
+    } catch (e) { next(e); }
+});
+
+app.get('/api/visitas-repositor', async (req, res, next) => {
+    const { id_repo, fecha_desde, fecha_hasta } = req.query;
+    try {
+        const result = await query(`
+            SELECT v.fecha, ucli.nombre AS cliente,
+                   s.calle || ' ' || COALESCE(CAST(s.altura AS VARCHAR), 'S/N') || ', ' || s.localidad AS sucursal,
+                   COUNT(c.id) AS productos,
+                   CASE WHEN COUNT(c.id) = COUNT(CASE WHEN c.estado = 'Aprobado' THEN 1 END) THEN 'Aprobado'
+                        WHEN COUNT(CASE WHEN c.estado = 'Rechazado' THEN 1 END) > 0 THEN 'Rechazado'
+                        ELSE 'Pendiente' END AS estado
+            FROM visita v
+            JOIN usuario ucli ON v.id_cliente = ucli.id
+            JOIN sucursal s ON v.id_sucursal = s.id
+            LEFT JOIN carga c ON v.id = c.id_visita
+            WHERE v.id_repo = $1
+            AND v.fecha >= $2
+            AND v.fecha <= $3
+            GROUP BY v.id, v.fecha, ucli.nombre, s.calle, s.altura, s.localidad
+            ORDER BY v.fecha DESC
+        `, [id_repo, fecha_desde, fecha_hasta]);
         res.json(result.rows);
     } catch (e) { next(e); }
 });

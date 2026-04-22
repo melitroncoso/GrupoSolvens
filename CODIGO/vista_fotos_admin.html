@@ -35,6 +35,10 @@
         <h1>Evidencia <span>Fotográfica</span></h1>
         <p class="page-subtitulo">Aprobación y registro visual de visitas</p>
 
+        <div class="acciones-principales">
+            <button class="btn-exportar-ppt" id="btnExportarPPT">Exportar PPT</button>
+        </div>
+
         <div class="contenedor-layout">
             <aside class="sidebar-filtros" id="sidebarFiltros">
                 <div class="sidebar-header">
@@ -457,6 +461,31 @@
 
         document.getElementById('btnAplicarFiltros').onclick = applyFilters;
         document.getElementById('btnLimpiarFiltros').onclick = clearFilters;
+
+        document.getElementById('btnExportarPPT').onclick = async () => {
+            const clienteSeleccionado = document.getElementById('filtroCliente').value;
+            if (!clienteSeleccionado) {
+                mostrarToast('Seleccione un cliente para exportar.', 'error');
+                return;
+            }
+            try {
+                const res = await fetch(`${URL_BASE}/exportar-ppt?cliente=${encodeURIComponent(clienteSeleccionado)}`);
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Evidencia_${clienteSeleccionado}.pptx`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    mostrarToast('PPT exportado correctamente.');
+                } else {
+                    mostrarToast('Error al exportar PPT.', 'error');
+                }
+            } catch (err) {
+                mostrarToast('Error de conexión.', 'error');
+            }
+        };
 
         document.getElementById('btnToggleSidebar').onclick = () => { document.getElementById('sidebarFiltros').classList.add('activo'); document.getElementById('btnToggleSidebar').classList.add('oculto'); };
         document.getElementById('btnCerrarSidebar').onclick = () => { document.getElementById('sidebarFiltros').classList.remove('activo'); document.getElementById('btnToggleSidebar').classList.remove('oculto'); };

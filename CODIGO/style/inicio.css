@@ -128,18 +128,21 @@ body::before {
 
 .tarjeta-accion {
     width: 100%;
-    max-width: 350px;
+    max-width: 260px;
+    min-width: 200px;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     border: 2px solid #ffffff;
     border-radius: 15px;
-    padding: 40px;
+    padding: 28px 24px;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     position: relative;
     cursor: pointer;
+    min-height: 220px;
+    max-height: 260px;
 }
 
 .tarjeta-accion:hover {
@@ -199,6 +202,15 @@ body::before {
     font-size: 13px;
     border-top: 1px solid #333;
     margin-top: auto;
+}
+
+.footer-contacto a {
+    color: #888;
+    text-decoration: none;
+}
+
+.footer-contacto a:hover {
+    color: #aaa;
 }
 
 

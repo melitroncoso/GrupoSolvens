@@ -42,6 +42,27 @@ body {
     flex: 1;
 }
 
+.acciones-principales {
+    margin-bottom: 20px;
+    text-align: right;
+}
+
+.btn-exportar-ppt {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.btn-exportar-ppt:hover {
+    background-color: #b91c1c;
+}
+
 .visita-seccion {
     animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;

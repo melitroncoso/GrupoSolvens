@@ -97,7 +97,11 @@
 
             sucursalesSeleccionadas = new Set(actuales.map(s => s.ID.toString()));
             panel.style.display = 'block';
-            actualizarVistaSucursales();
+
+            // Resetear filtro de cadena y contenedor al cambiar de cliente
+            filtroCadena.value = '';
+            contenedor.innerHTML = '<p style="color: #666;">Seleccione una cadena para ver opciones...</p>';
+            actualizarContador();
         });
 
         filtroCadena.addEventListener('change', actualizarVistaSucursales);

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitas del Mes - Solvens</title>
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/filtros.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <a href="inicioRepositor.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenedor-layout">
+        <div class="area-contenido">
+            <h1 class="page-titulo">Mis Visitas del <span>Mes</span></h1>
+            <p class="page-subtitulo">Visitas realizadas en el mes actual</p>
+
+            <div class="barra-resultados">
+                <span>Mostrando <strong id="conteoResultados">0</strong> registros</span>
+            </div>
+
+            <div class="contenedor-tabla">
+                <table class="tabla-datos" id="tablaVisitas">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Sucursal</th>
+                            <th>Productos</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyVisitas">
+                        <!-- Datos cargados dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-contacto">
+        <p><i class="fa-solid fa-envelope"></i> <a href="mailto:NRossi@gruposolvens.com.ar">NRossi@gruposolvens.com.ar</a> | <i class="fa-solid fa-phone"></i> +54 11 6142-0293</p>
+    </footer>
+
+    <script>
+        const URL_BASE = '/api';
+        const idRepo = localStorage.getItem('id_usuario');
+
+        async function cargarVisitasMes() {
+            if (!idRepo) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const ahora = new Date();
+            const primerDia = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+            const ultimoDia = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0);
+
+            const fechaDesde = primerDia.toISOString().split('T')[0];
+            const fechaHasta = ultimoDia.toISOString().split('T')[0];
+
+            const res = await fetch(`${URL_BASE}/visitas-repositor?id_repo=${idRepo}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`);
+            const visitas = await res.json();
+
+            const tbody = document.getElementById('tbodyVisitas');
+            tbody.innerHTML = '';
+
+            visitas.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${new Date(v.fecha).toLocaleDateString('es-AR')}</td>
+                    <td>${v.cliente}</td>
+                    <td>${v.sucursal}</td>
+                    <td>${v.productos}</td>
+                    <td>${v.estado}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('conteoResultados').textContent = visitas.length;
+        }
+
+        cargarVisitasMes();
+    </script>
+</body>
+
+</html>
