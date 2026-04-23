@@ -32,32 +32,29 @@
 
         <div class="formulario">
             <div class="fila">
-                <label>Seleccione Cliente:</label>
-                <br>
-                <br>
+                <label>Cliente:</label><br><br>
                 <select id="cliente-select">
                     <option value="" disabled selected>Cargando clientes...</option>
                 </select>
             </div>
 
             <div id="panel-edicion" class="panel-edicion" style="display:none;">
-                <h3>Sucursales Asignadas</h3>
-                <br>
-                <div class="fila">
+                <div class="fila" style="margin-top:20px;">
+                    <label>Cadena:</label><br><br>
                     <select id="filtro-cadena">
-                        <option value="">Todas las Cadenas</option>
+                        <option value="" disabled selected>Seleccione una cadena...</option>
                     </select>
                 </div>
 
-                <div id="contenedor-sucursales" class="lista-sucursales">
-                    <p style="color: #666;">Seleccione una cadena para ver opciones...</p>
+                <div id="contenedor-sucursales" class="lista-sucursales" style="margin-top:16px;">
+                    <p style="color:#666;">Seleccione una cadena para ver sucursales...</p>
                 </div>
 
-                <p id="contador-actual" class="contador-sucursales">
+                <p id="contador-actual" class="contador-sucursales" style="margin-top:12px;">
                     Total seleccionadas: 0
                 </p>
 
-                <button id="btn-guardar" class="btn-guardar-verde">Guardar Cambios</button>
+                <button id="btn-guardar" class="btn-guardar-verde" style="margin-top:16px;">Guardar Cambios</button>
             </div>
         </div>
     </main>
@@ -84,6 +81,7 @@
             // Cargar Cadenas para el filtro
             const resC = await fetch(`${URL_BASE}/cadenas`);
             const cadenas = await resC.json();
+            filtroCadena.innerHTML = '<option value="" disabled selected>Seleccione una cadena...</option>';
             cadenas.forEach(cad => {
                 filtroCadena.innerHTML += `<option value="${cad.ID}">${cad.Nombre}</option>`;
             });

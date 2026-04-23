@@ -786,6 +786,66 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
         `, [idCliente]);
 
         const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 in
+
+        const C_ROJO   = 'DC2626';
+        const C_NEGRO  = '111111';
+        const C_BLANCO = 'FFFFFF';
+        const C_GRIS   = '999999';
+
+        // ── Slide de portada ──────────────────────────────────────────────────
+        const portada = pptx.addSlide();
+        portada.background = { color: C_NEGRO };
+        portada.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.08, fill: { color: C_ROJO }, line: { color: C_ROJO } });
+        portada.addShape(pptx.ShapeType.rect, { x: 0, y: 7.42, w: '100%', h: 0.08, fill: { color: C_ROJO }, line: { color: C_ROJO } });
+        portada.addText('EVIDENCIA FOTOGRÁFICA', {
+            x: 0, y: 2.2, w: '100%', align: 'center',
+            fontSize: 40, bold: true, color: C_BLANCO, fontFace: 'Segoe UI'
+        });
+        portada.addText(cliente.toUpperCase(), {
+            x: 0, y: 3.1, w: '100%', align: 'center',
+            fontSize: 28, bold: true, color: C_ROJO, fontFace: 'Segoe UI'
+        });
+        portada.addText(new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).toUpperCase(), {
+            x: 0, y: 3.85, w: '100%', align: 'center',
+            fontSize: 14, color: C_GRIS, fontFace: 'Segoe UI'
+        });
+        portada.addText('Grupo Solvens', {
+            x: 0, y: 6.9, w: '100%', align: 'center',
+            fontSize: 11, color: C_GRIS, fontFace: 'Segoe UI'
+        });
+
+        // ── Layouts de imágenes (en pulgadas, slide 13.33 x 7.5) ─────────────
+        const MARGIN = 0.18;
+        const Y_TOP  = 0.72; // debajo del header
+        const H_DISP = 6.6;  // alto disponible
+        const W_DISP = 13.33 - MARGIN * 2;
+
+        const LAYOUTS = {
+            1: [{ x: MARGIN, y: Y_TOP, w: W_DISP, h: H_DISP }],
+            2: [
+                { x: MARGIN,            y: Y_TOP, w: (W_DISP - 0.12) / 2, h: H_DISP },
+                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP, w: (W_DISP - 0.12) / 2, h: H_DISP }
+            ],
+            3: [
+                { x: MARGIN, y: Y_TOP,             w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + W_DISP / 4, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: W_DISP / 2, h: (H_DISP - 0.12) / 2 }
+            ],
+            4: [
+                { x: MARGIN,            y: Y_TOP,             w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP,             w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN,            y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 }
+            ],
+            5: [
+                { x: MARGIN,             y: Y_TOP,                       w: (W_DISP - 0.24) / 3, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + (W_DISP - 0.24) / 3 + 0.12,             y: Y_TOP,                       w: (W_DISP - 0.24) / 3, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + ((W_DISP - 0.24) / 3 + 0.12) * 2,       y: Y_TOP,                       w: (W_DISP - 0.24) / 3, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + (W_DISP - 0.24) / 4 * 0.5, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
+                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12 + (W_DISP - 0.24) / 4 * 0.5, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 }
+            ]
+        };
 
         for (const suc of sucursales.rows) {
             // Obtener última visita aprobada a esta sucursal por este cliente
@@ -802,27 +862,50 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
 
             const visita = visitaResult.rows[0];
 
-            // Obtener imágenes aprobadas de esa visita
+            // Obtener imágenes aprobadas (máximo 5)
             const imagenes = await query(`
-                SELECT ruta_imagen FROM imagen WHERE id_visita = $1 AND estado = 'Aprobado'
+                SELECT ruta_imagen FROM imagen WHERE id_visita = $1 AND estado = 'Aprobado' LIMIT 5
             `, [visita.id]);
 
-            const slide = pptx.addSlide();
-            slide.addText(`${suc.cadena} - ${suc.calle} ${suc.altura}, ${suc.localidad}`, { x: 0.5, y: 0.5, fontSize: 18 });
-            slide.addText(`Fecha: ${new Date(visita.fecha).toLocaleDateString('es-AR')}`, { x: 0.5, y: 0.8, fontSize: 14 });
-            slide.addText(`Repositor: ${visita.repositor}`, { x: 0.5, y: 1.0, fontSize: 14 });
+            if (imagenes.rows.length === 0) continue;
 
-            // Agregar imágenes (máximo 4 por slide)
-            for (let i = 0; i < Math.min(imagenes.rows.length, 4); i++) {
+            // ── Crear slide ───────────────────────────────────────────────────
+            const slide = pptx.addSlide();
+            slide.background = { color: C_NEGRO };
+
+            // Franja roja superior
+            slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.62, fill: { color: C_ROJO }, line: { color: C_ROJO } });
+
+            // Cadena + dirección (izquierda del header)
+            slide.addText(`${suc.cadena.toUpperCase()}  —  ${suc.calle} ${suc.altura || ''}, ${suc.localidad}`, {
+                x: 0.2, y: 0, w: 8.5, h: 0.62,
+                fontSize: 15, bold: true, color: C_BLANCO, fontFace: 'Segoe UI', valign: 'middle'
+            });
+
+            // Fecha + repositor (derecha del header)
+            slide.addText(`${new Date(visita.fecha).toLocaleDateString('es-AR')}  ·  ${visita.repositor}`, {
+                x: 8.8, y: 0, w: 4.33, h: 0.62,
+                fontSize: 11, color: C_BLANCO, fontFace: 'Segoe UI', align: 'right', valign: 'middle'
+            });
+
+            // ── Imágenes con layout adaptativo ───────────────────────────────
+            const count = Math.min(imagenes.rows.length, 5);
+            const positions = LAYOUTS[count];
+
+            for (let i = 0; i < count; i++) {
                 const img = imagenes.rows[i];
                 try {
                     const imgRes = await fetch(img.ruta_imagen);
-                    if (imgRes.ok) {
-                        const buffer = await imgRes.arrayBuffer();
-                        slide.addImage({ data: buffer, x: (i % 2) * 3, y: 1.5 + Math.floor(i / 2) * 2, w: 3, h: 2 });
-                    }
+                    if (!imgRes.ok) continue;
+                    const buf = Buffer.from(await imgRes.arrayBuffer());
+                    const pos = positions[i];
+                    slide.addImage({
+                        data: `image/jpeg;base64,${buf.toString('base64')}`,
+                        x: pos.x, y: pos.y, w: pos.w, h: pos.h,
+                        sizing: { type: 'contain', w: pos.w, h: pos.h }
+                    });
                 } catch (err) {
-                    console.error('Error fetching image:', err);
+                    console.error('Error al obtener imagen:', err);
                 }
             }
         }

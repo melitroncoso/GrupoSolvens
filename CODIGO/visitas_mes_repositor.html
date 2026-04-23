@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visitas del Mes - Solvens</title>
+    <title>Mis Visitas del Mes - Solvens</title>
     <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
     <link rel="stylesheet" href="style/filtros.css">
+    <link rel="stylesheet" href="style/tablas_pendientes.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -30,78 +31,130 @@
         </div>
     </header>
 
-    <main class="contenedor-layout">
-        <div class="area-contenido">
+    <div class="contenedor-layout">
+        <main class="area-contenido" style="padding: 32px 36px;">
             <h1 class="page-titulo">Mis Visitas del <span>Mes</span></h1>
-            <p class="page-subtitulo">Visitas realizadas en el mes actual</p>
+            <p class="page-subtitulo">Visitas realizadas durante el mes en curso</p>
 
             <div class="barra-resultados">
                 <span>Mostrando <strong id="conteoResultados">0</strong> registros</span>
             </div>
 
-            <div class="contenedor-tabla">
-                <table class="tabla-datos" id="tablaVisitas">
+            <div class="tabla-wrapper">
+                <table class="tabla-reporte">
                     <thead>
                         <tr>
                             <th>Fecha</th>
                             <th>Cliente</th>
+                            <th>Cadena</th>
                             <th>Sucursal</th>
-                            <th>Productos</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
-                    <tbody id="tbodyVisitas">
-                        <!-- Datos cargados dinámicamente -->
+                    <tbody id="cuerpoTabla">
+                        <tr>
+                            <td colspan="5">
+                                <div class="estado-tabla">
+                                    <div class="spinner"></div>
+                                    <p>Cargando datos...</p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
-    </main>
 
-    <footer class="footer-contacto">
-        <p><i class="fa-solid fa-envelope"></i> <a href="mailto:NRossi@gruposolvens.com.ar" style="color:#aaaaaa;text-decoration:none;">NRossi@gruposolvens.com.ar</a> | <i class="fa-solid fa-phone"></i> +54 11 6142-0293</p>
-    </footer>
+            <div class="paginacion" id="paginacion"></div>
+        </main>
+    </div>
+
+    <div id="toast"></div>
 
     <script>
         const URL_BASE = '/api';
         const idRepo = localStorage.getItem('id_usuario');
+        const FILAS_PAGINA = 25;
+        let paginaActual = 1;
+        let datosCompletos = [];
+
+        const cuerpo = document.getElementById('cuerpoTabla');
+        const conteoEl = document.getElementById('conteoResultados');
+        const paginacionEl = document.getElementById('paginacion');
 
         async function cargarVisitasMes() {
-            if (!idRepo) {
-                window.location.href = 'login.html';
+            if (!idRepo) { window.location.href = 'login.html'; return; }
+
+            const ahora = new Date();
+            const fechaDesde = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString().split('T')[0];
+            const fechaHasta = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString().split('T')[0];
+
+            try {
+                const res = await fetch(`${URL_BASE}/visitas-repositor?id_repo=${idRepo}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`);
+                if (!res.ok) throw new Error();
+                datosCompletos = await res.json();
+                paginaActual = 1;
+                renderTabla();
+            } catch {
+                cuerpo.innerHTML = `<tr><td colspan="5"><div class="estado-tabla">
+                    <i class="fas fa-exclamation-circle" style="color:#dc2626;font-size:48px;"></i>
+                    <p>Error al conectar con el servidor.</p>
+                </div></td></tr>`;
+            }
+        }
+
+        function renderTabla() {
+            const total = datosCompletos.length;
+            const inicio = (paginaActual - 1) * FILAS_PAGINA;
+            const pagina = datosCompletos.slice(inicio, inicio + FILAS_PAGINA);
+
+            conteoEl.textContent = total;
+
+            if (total === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="5"><div class="estado-tabla">
+                    <i class="fas fa-search" style="color:#3b82f6;opacity:0.5;font-size:48px;"></i>
+                    <p>No hay visitas registradas este mes.</p>
+                </div></td></tr>`;
+                paginacionEl.innerHTML = '';
                 return;
             }
 
-            const ahora = new Date();
-            const primerDia = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-            const ultimoDia = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0);
+            cuerpo.innerHTML = pagina.map(v => {
+                const fecha = new Date(v.fecha);
+                const dia  = String(fecha.getUTCDate()).padStart(2, '0');
+                const mes  = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+                const anio = fecha.getUTCFullYear();
+                const estadoClass = (v.estado || 'pendiente').toLowerCase();
+                return `
+                <tr>
+                    <td class="col-fecha">${dia}/${mes}/${anio}</td>
+                    <td>${v.cliente || '-'}</td>
+                    <td>${v.cadena || '-'}</td>
+                    <td>${v.sucursal || '-'}</td>
+                    <td><span class="status-pill status-${estadoClass}">${v.estado || 'Pendiente'}</span></td>
+                </tr>`;
+            }).join('');
 
-            const fechaDesde = primerDia.toISOString().split('T')[0];
-            const fechaHasta = ultimoDia.toISOString().split('T')[0];
-
-            const res = await fetch(`${URL_BASE}/visitas-repositor?id_repo=${idRepo}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`);
-            const visitas = await res.json();
-
-            const tbody = document.getElementById('tbodyVisitas');
-            tbody.innerHTML = '';
-
-            visitas.forEach(v => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${new Date(v.fecha).toLocaleDateString('es-AR')}</td>
-                    <td>${v.cliente}</td>
-                    <td>${v.sucursal}</td>
-                    <td>${v.productos}</td>
-                    <td>${v.estado}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('conteoResultados').textContent = visitas.length;
+            renderPaginacion(total);
         }
+
+        function renderPaginacion(total) {
+            const totalPags = Math.ceil(total / FILAS_PAGINA);
+            if (totalPags <= 1) { paginacionEl.innerHTML = ''; return; }
+            let html = `<button ${paginaActual === 1 ? 'disabled' : ''} onclick="irPagina(${paginaActual - 1})">‹</button>`;
+            for (let i = 1; i <= totalPags; i++) {
+                if (i === 1 || i === totalPags || Math.abs(i - paginaActual) <= 2)
+                    html += `<button class="${i === paginaActual ? 'activa' : ''}" onclick="irPagina(${i})">${i}</button>`;
+                else if (Math.abs(i - paginaActual) === 3)
+                    html += `<button disabled>…</button>`;
+            }
+            html += `<button ${paginaActual === totalPags ? 'disabled' : ''} onclick="irPagina(${paginaActual + 1})">›</button>`;
+            paginacionEl.innerHTML = html;
+        }
+
+        window.irPagina = (p) => { paginaActual = p; renderTabla(); window.scrollTo(0, 0); };
 
         cargarVisitasMes();
     </script>
-</body>
 
+</body>
 </html>
