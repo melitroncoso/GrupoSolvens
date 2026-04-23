@@ -120,21 +120,21 @@ body::before {
 .grid-acciones {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     gap: 30px;
     flex-wrap: wrap;
+    width: 100%;
 }
 
-
 .tarjeta-accion {
-    width: 100%;
-    max-width: 260px;
+    flex: 1 1 220px;
+    max-width: 300px;
     min-width: 200px;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     border: 2px solid #ffffff;
     border-radius: 15px;
-    padding: 28px 24px;
+    padding: 30px 24px;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -142,7 +142,6 @@ body::before {
     position: relative;
     cursor: pointer;
     min-height: 220px;
-    max-height: 260px;
 }
 
 .tarjeta-accion:hover {
