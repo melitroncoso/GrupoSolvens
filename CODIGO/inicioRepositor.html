@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
-
+ 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Repositor - Grupo Solvens</title>
-
+ 
     <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
-
+ 
     <link rel="stylesheet" href="style/inicio.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-
+ 
 <body>
     <header class="header">
         <div class="header-left"></div>
@@ -19,16 +19,16 @@
             <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
         </div>
         <div class="header-right">
-            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+            <a href="#" class="btn-salir" onclick="logout()">Cerrar Sesión</a>
         </div>
     </header>
-
+ 
     <main class="contenedor-principal">
         <div class="bienvenida">
             <h1>Panel de <span id="nombreRepositor">Repositor</span></h1>
             <p>Gestión de inventario y stock</p>
         </div>
-
+ 
         <div class="grid-acciones">
             <div class="tarjeta-accion">
                 <i class="fa-solid fa-circle-plus"></i>
@@ -36,7 +36,7 @@
                 <p>Carga en el sistema la visita realizada</p>
                 <a class="btn-entrar" href="cargar_visita.html">Nueva Visita</a>
             </div>
-
+ 
             <div class="tarjeta-accion">
                 <i class="fa-solid fa-calendar-alt"></i>
                 <h3>Visitas del Mes</h3>
@@ -45,15 +45,20 @@
             </div>
         </div>
     </main>
-
+ 
     <footer class="footer-contacto">
         <p><i class="fa-solid fa-envelope"></i> <a href="mailto:NRossi@gruposolvens.com.ar">NRossi@gruposolvens.com.ar</a> | <i class="fa-solid fa-phone"></i> +54 11 6142-0293</p>
     </footer>
-
+ 
     <script>
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+ 
         document.addEventListener('DOMContentLoaded', () => {
-            const nombre = localStorage.getItem('nombreUsuario');
-            const id = localStorage.getItem('id_usuario');
+            const nombre = sessionStorage.getItem('nombreUsuario');
+            const id = sessionStorage.getItem('id_usuario');
             if (!id) {
                 window.location.href = 'login.html';
                 return;
@@ -63,9 +68,7 @@
                 if (span) span.textContent = nombre;
             }
         });
-    </script>
-
-    <script>
+ 
         document.querySelectorAll(".tarjeta-accion").forEach(function(card) {
             var link = card.querySelector(".btn-entrar");
             if (link) {
@@ -79,5 +82,5 @@
         });
     </script>
 </body>
-
+ 
 </html>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-
+ 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,18 +10,33 @@
     <link rel="stylesheet" href="style/inicioAdmin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-
+ 
 <body>
+    <script>
+        const id = sessionStorage.getItem('id_usuario');
+        const tipo = sessionStorage.getItem('tipoUsuario');
+ 
+        // Si no hay sesión o no es admin → afuera
+        if (!id || Number(tipo) !== 1) {
+            window.location.href = "login.html";
+        }
+ 
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+ 
     <header class="header">
         <div class="header-left"></div>
         <div class="header-center">
             <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
         </div>
         <div class="header-right">
-            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+            <a href="#" class="btn-salir" onclick="logout()">Cerrar Sesión</a>
         </div>
     </header>
-
+ 
     <main class="contenedor-principal">
         <div class="bienvenida">
             <h1>Panel de <span>Administrador</span></h1>
@@ -42,28 +57,28 @@
                 <p>Control de accesos, roles y perfiles de empleados y clientes.</p>
                 <a class="btn-entrar" href="Admin_gestion_usuario.html">Gestionar Usuarios</a>
             </div>
-
+ 
             <div class="tarjeta-accion">
                 <i class="fa-solid fa-layer-group"></i>
                 <h3>Administración Cadena</h3>
                 <p>Configuración y gestión de las distintas cadenas comerciales.</p>
                 <a class="btn-entrar" href="Admin_gestion_cadena.html">Gestionar Cadenas</a>
             </div>
-
+ 
             <div class="tarjeta-accion">
                 <i class="fa-solid fa-shop"></i>
                 <h3>Administración Sucursal</h3>
                 <p>Administración de puntos de venta y ubicaciones físicas.</p>
                 <a class="btn-entrar" href="Admin_gestion_sucursal.html">Gestionar Sucursales</a>
             </div>
-
+ 
             <div class="tarjeta-accion">
                 <i class="fa-solid fa-calendar-check"></i>
                 <h3>Visitas</h3>
                 <p>Revisión y seguimiento de visitas, productos e imágenes relevadas.</p>
                 <a class="btn-entrar" href="Admin_gestion_visitas.html">Ver Visitas</a>
             </div>
-
+ 
             <div class="tarjeta-accion">
                 <i class="fa-solid fa-tags"></i>
                 <h3>Administración Categoría</h3>
@@ -72,11 +87,11 @@
             </div>
         </div>
     </main>
-
+ 
     <footer class="footer-contacto">
         <p><i class="fa-solid fa-envelope"></i> <a href="mailto:NRossi@gruposolvens.com.ar">NRossi@gruposolvens.com.ar</a> | <i class="fa-solid fa-phone"></i> +54 11 6142-0293</p>
     </footer>
-
+ 
     <script>
         document.querySelectorAll(".tarjeta-accion").forEach(function(card) {
             var link = card.querySelector(".btn-entrar");
@@ -91,5 +106,5 @@
         });
     </script>
 </body>
-
+ 
 </html>
