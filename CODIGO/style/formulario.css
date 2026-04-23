@@ -216,6 +216,7 @@ button:active {
 }
 
 /* ===== TOAST ===== */
+/* Nota: .toast maneja visibilidad via opacity + pointer-events, sin display:none */
 #toast {
     position: fixed;
     bottom: 24px;
@@ -225,10 +226,13 @@ button:active {
     font-size: 14px;
     font-weight: 500;
     color: #fff;
-    display: none;
+    opacity: 0;
+    pointer-events: none;
     z-index: 9999;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
     max-width: calc(100vw - 48px);
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateY(10px);
 }
 
 #toast.exito {
@@ -510,7 +514,12 @@ button:active {
 }
 
 .btn-guardar-verde {
-    background-color: #28a745;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.btn-guardar-verde:hover {
+    background: linear-gradient(135deg, #15803d, #166534);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35);
 }
 
 /* ── SUCURSAL CHECK ROW (agregar_usuario) ── */

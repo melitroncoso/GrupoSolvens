@@ -181,9 +181,9 @@
         function mostrarToast(mensaje, tipo = 'exito') {
             const t = document.getElementById('toast');
             t.textContent = mensaje;
-            t.className = 'toast ' + tipo;
-            t.classList.add('visible');
-            setTimeout(() => t.classList.remove('visible'), 3500);
+            t.className = 'toast ' + tipo + ' visible';
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => t.classList.remove('visible'), 3500);
         }
 
         iniciar();

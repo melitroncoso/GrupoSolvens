@@ -909,10 +909,18 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                 try {
                     const imgRes = await fetch(img.ruta_imagen);
                     if (!imgRes.ok) continue;
+
+                    // Detectar tipo real de imagen para evitar XML inválido en el PPTX
+                    const ct = (imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
+                    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    const mimeType = tiposPermitidos.includes(ct) ? ct : 'image/jpeg';
+
                     const buf = Buffer.from(await imgRes.arrayBuffer());
+                    if (buf.length === 0) continue;
+
                     const pos = positions[i];
                     slide.addImage({
-                        data: `data:image/jpeg;base64,${buf.toString('base64')}`,
+                        data: `data:${mimeType};base64,${buf.toString('base64')}`,
                         x: pos.x, y: pos.y, w: pos.w, h: pos.h,
                         sizing: { type: 'contain', w: pos.w, h: pos.h }
                     });
