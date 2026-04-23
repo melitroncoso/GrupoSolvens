@@ -456,8 +456,20 @@ app.get('/api/productos-cliente', async (req, res, next) => {
 app.get('/api/mis-sucursales', async (req, res, next) => {
     const { id_cliente, id_repo } = req.query;
 
+    // Sin id_repo = llamada de admin, devuelve todas las sucursales del cliente sin filtro de zona
     if (!id_repo) {
-        return res.status(400).json({ error: 'Falta id_repo para aplicar filtro de zona.' });
+        try {
+            const result = await query(
+                `SELECT s.id AS "ID", s.calle AS "Calle", s.altura AS "Altura",
+                        s.localidad AS "Localidad", ca.nombre AS "Cadena"
+                 FROM sucursal s
+                 JOIN abastece a  ON s.id = a.id_sucursal
+                 JOIN cadena ca   ON s.id_cadena = ca.id
+                 WHERE a.id_cliente = $1`,
+                [id_cliente]
+            );
+            return res.json(result.rows);
+        } catch (e) { return next(e); }
     }
 
     try {
@@ -900,7 +912,7 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                     const buf = Buffer.from(await imgRes.arrayBuffer());
                     const pos = positions[i];
                     slide.addImage({
-                        data: `image/jpeg;base64,${buf.toString('base64')}`,
+                        data: `data:image/jpeg;base64,${buf.toString('base64')}`,
                         x: pos.x, y: pos.y, w: pos.w, h: pos.h,
                         sizing: { type: 'contain', w: pos.w, h: pos.h }
                     });
@@ -975,6 +987,7 @@ app.get('/api/visitas-repositor', async (req, res, next) => {
     try {
         const result = await query(`
             SELECT v.fecha, ucli.nombre AS cliente,
+                   ca.nombre AS cadena,
                    s.calle || ' ' || COALESCE(CAST(s.altura AS VARCHAR), 'S/N') || ', ' || s.localidad AS sucursal,
                    COUNT(c.id) AS productos,
                    CASE WHEN COUNT(c.id) = COUNT(CASE WHEN c.estado = 'Aprobado' THEN 1 END) THEN 'Aprobado'
@@ -983,11 +996,12 @@ app.get('/api/visitas-repositor', async (req, res, next) => {
             FROM visita v
             JOIN usuario ucli ON v.id_cliente = ucli.id
             JOIN sucursal s ON v.id_sucursal = s.id
+            JOIN cadena ca ON s.id_cadena = ca.id
             LEFT JOIN carga c ON v.id = c.id_visita
             WHERE v.id_repo = $1
             AND v.fecha >= $2
             AND v.fecha <= $3
-            GROUP BY v.id, v.fecha, ucli.nombre, s.calle, s.altura, s.localidad
+            GROUP BY v.id, v.fecha, ucli.nombre, s.calle, s.altura, s.localidad, ca.nombre
             ORDER BY v.fecha DESC
         `, [id_repo, fecha_desde, fecha_hasta]);
         res.json(result.rows);

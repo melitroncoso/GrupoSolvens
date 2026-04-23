@@ -30,7 +30,7 @@
         <h1>Gestión de <span>Abastecimiento</span></h1>
         <p class="subtitulo">Modifique las sucursales asignadas a cada cliente</p>
 
-        <div class="formulario">
+        <form class="formulario" id="form-abastecimiento">
             <div class="fila">
                 <label>Cliente:</label><br><br>
                 <select id="cliente-select">
@@ -54,9 +54,9 @@
                     Total seleccionadas: 0
                 </p>
 
-                <button id="btn-guardar" class="btn-guardar-verde" style="margin-top:16px;">Guardar Cambios</button>
+                <button type="button" id="btn-guardar" class="btn-guardar-verde" style="margin-top:16px;">Guardar Cambios</button>
             </div>
-        </div>
+        </form>
     </main>
 
     <script>
