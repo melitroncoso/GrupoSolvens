@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Modificar Zona - Solvens</title>
+    <link rel="stylesheet" href="style/formulario.css">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_usuario.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+    <main class="contenido">
+        <h1>Modificar <span>Zona</span></h1>
+        <p class="subtitulo">Ingresa el nombre de usuario y selecciona la nueva zona</p>
+
+        <form class="formulario" id="form-modificar-zona">
+            <div class="fila">
+                <label>Nombre de Usuario:</label><br><br>
+                <input type="text" id="input-usuario" placeholder="Ej: jlopez" required style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+            </div>
+
+            <div class="fila" style="margin-top:20px;">
+                <label>Zona:</label><br><br>
+                <select id="select-zona" required>
+                    <option value="" disabled selected>Cargando zonas...</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-guardar-verde" style="margin-top:20px; width: 100%;">Guardar Cambios</button>
+        </form>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const URL_BASE = '/api';
+        const selectZona = document.getElementById('select-zona');
+        const form = document.getElementById('form-modificar-zona');
+
+        // 1. Cargar Zonas
+        async function cargarZonas() {
+            try {
+                const res = await fetch(`${URL_BASE}/zonas`);
+                const zonas = await res.json();
+                selectZona.innerHTML = '<option value="" disabled selected>Seleccione una Zona...</option>';
+                zonas.forEach(z => {
+                    selectZona.innerHTML += `<option value="${z.id}">${z.nombre}</option>`;
+                });
+            } catch (err) {
+                console.error("Error al cargar zonas:", err);
+                mostrarToast("❌ Error al cargar zonas.", "error");
+            }
+        }
+
+        // 2. Enviar actualización
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('input-usuario').value.trim();
+            const id_zona = selectZona.value;
+
+            if (!usuario || !id_zona) {
+                mostrarToast("⚠️ Complete todos los campos.", "error");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${URL_BASE}/actualizar-zona-usuario`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, id_zona })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    mostrarToast("✅ " + data.message, "exito");
+                    form.reset();
+                } else {
+                    mostrarToast("❌ " + (data.message || "Error al actualizar."), "error");
+                }
+            } catch (err) {
+                console.error("Error al actualizar:", err);
+                mostrarToast("❌ Error de red.", "error");
+            }
+        });
+
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo + ' visible';
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => t.classList.remove('visible'), 3500);
+        }
+
+        cargarZonas();
+    </script>
+</body>
+
+</html>

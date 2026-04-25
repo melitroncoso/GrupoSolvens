@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Visitas por Semana por Cliente</title>
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style/vista_fotos.css">
+    <link rel="stylesheet" href="style/filtros.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <a href="Admin_gestion_visitas.html" class="btn-volver">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                </svg>
+            </a>
+        </div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="area-contenido area-contenido-centrada">
+        <h1 class="page-titulo">Visitas por <span>Semana</span></h1>
+        <p class="page-subtitulo">Consultá la cantidad de visitas cargadas en la semana en curso por cliente.</p>
+
+        <div class="controles-consulta">
+            <div class="filtro-item">
+                <label class="label-pequeno">Seleccione Cliente</label>
+                <select id="selCliente" class="select-filtro select-consulta-cliente">
+                    <option>Cargando...</option>
+                </select>
+            </div>
+
+            <button id="btnBuscar" class="btn-consultar">Consultar</button>
+
+            <button id="btnExportar" class="btn-exportar-excel">
+                <i class="fas fa-file-excel"></i> Exportar a Excel
+            </button>
+        </div>
+
+        <div class="tabla-wrapper">
+            <table class="tabla-reporte" id="tblResultados">
+                <thead>
+                    <tr>
+                        <th>Sucursal / Punto de Venta</th>
+                        <th class="col-centrada">Visitas en la Semana</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="2" class="estado-tabla-inicial">
+                            Seleccione un cliente y haga clic en consultar para ver los resultados.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        async function cargarClientes() {
+            const sel = document.getElementById('selCliente');
+            try {
+                const res = await fetch('/api/clientes-activos');
+                const clients = await res.json();
+                sel.innerHTML = '<option value="" disabled selected>-- elija --</option>' +
+                    clients.map(c => `<option value="${c.ID}">${c.Nombre}</option>`).join('');
+            } catch (e) {
+                sel.innerHTML = '<option error>Carga fallida</option>';
+                console.error(e);
+            }
+        }
+
+        async function consultar() {
+            const sel = document.getElementById('selCliente');
+            const id = sel.value;
+            if (!id) return;
+            const tbody = document.querySelector('#tblResultados tbody');
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
+            try {
+                const res = await fetch(`/api/visitas-semana-cliente?id_cliente=${id}`);
+                let rows = await res.json();
+
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2">No se encontraron sucursales para este cliente.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = rows.map(r => `<tr>
+                    <td>${r.NombreSucursal}</td>
+                    <td style="text-align: center; font-weight: bold; color: ${r.VisitasSemanales > 0 ? '#16a34a' : '#dc2626'}">
+                        ${r.VisitasSemanales}
+                    </td>
+                </tr>`).join('');
+
+                ultimaConsulta = rows;
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="2">Error en consulta</td></tr>';
+            }
+        }
+
+        let ultimaConsulta = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tipo = Number(localStorage.getItem('tipoUsuario'));
+            if (tipo !== 1) { window.location.href = 'login.html'; return; }
+            cargarClientes();
+            document.getElementById('btnBuscar').addEventListener('click', consultar);
+            document.getElementById('btnExportar').addEventListener('click', exportarExcel);
+        });
+
+        function mostrarToast(mensaje, tipo = 'exito') {
+            const t = document.getElementById('toast');
+            t.textContent = mensaje;
+            t.className = 'toast ' + tipo;
+            t.classList.add('visible');
+            setTimeout(() => t.classList.remove('visible'), 3500);
+        }
+
+        function exportarExcel() {
+            if (!ultimaConsulta || ultimaConsulta.length === 0) {
+                mostrarToast('No hay datos para exportar', 'aviso');
+                return;
+            }
+            // preparar datos formato JSON para SheetJS
+            const datosParaExportar = ultimaConsulta.map(r => ({
+                Sucursal: r.NombreSucursal || '',
+                "Visitas en la Semana": r.VisitasSemanales
+            }));
+            const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
+            const libro = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(libro, hoja, "Visitas Semanales");
+            const nombreArchivo = `Visitas_Semanales_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(libro, nombreArchivo);
+        }
+    </script>
+    <div class="toast" id="toast"></div>
+
+</body>
+
+</html>

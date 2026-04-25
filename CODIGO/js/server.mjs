@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import bcrypt from 'bcrypt';
 import https from 'https';
 import http from 'http';
+import fs from 'fs';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import PptxGenJS from 'pptxgenjs';
 import { query, getClient } from './conexion.mjs';
@@ -305,6 +306,18 @@ app.delete('/api/eliminar-usuario/:id', async (req, res, next) => {
     try {
         await query('DELETE FROM usuario WHERE id = $1', [req.params.id]);
         res.json({ success: true, message: 'Usuario eliminado con éxito.' });
+    } catch (e) { next(e); }
+});
+
+app.put('/api/actualizar-zona-usuario', async (req, res, next) => {
+    const { usuario, id_zona } = req.body;
+    try {
+        const check = await query('SELECT id FROM usuario WHERE usuario = $1', [usuario]);
+        if (check.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+        }
+        await query('UPDATE usuario SET id_zona = $1 WHERE usuario = $2', [id_zona, usuario]);
+        res.json({ success: true, message: 'Zona del usuario actualizada correctamente.' });
     } catch (e) { next(e); }
 });
 
@@ -798,69 +811,53 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
         `, [idCliente]);
 
         const pptx = new PptxGenJS();
-        pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 in
+        pptx.layout = 'LAYOUT_16x9';
 
-        const C_ROJO   = 'DC2626';
-        const C_NEGRO  = '111111';
-        const C_BLANCO = 'FFFFFF';
-        const C_GRIS   = '999999';
+        const logoPath = path.join(__dirname, '..', '..', 'IMG', 'logo.png');
+        let logoB64 = '';
+        if (fs.existsSync(logoPath)) {
+            logoB64 = 'data:image/png;base64,' + fs.readFileSync(logoPath).toString('base64');
+        }
 
-        // ── Slide de portada ──────────────────────────────────────────────────
-        const portada = pptx.addSlide();
-        portada.background = { color: C_NEGRO };
-        portada.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.08, fill: { color: C_ROJO }, line: { color: C_ROJO } });
-        portada.addShape(pptx.ShapeType.rect, { x: 0, y: 7.42, w: '100%', h: 0.08, fill: { color: C_ROJO }, line: { color: C_ROJO } });
-        portada.addText('EVIDENCIA FOTOGRÁFICA', {
-            x: 0, y: 2.2, w: '100%', align: 'center',
-            fontSize: 40, bold: true, color: C_BLANCO, fontFace: 'Segoe UI'
-        });
-        portada.addText(cliente.toUpperCase(), {
-            x: 0, y: 3.1, w: '100%', align: 'center',
-            fontSize: 28, bold: true, color: C_ROJO, fontFace: 'Segoe UI'
-        });
-        portada.addText(new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).toUpperCase(), {
-            x: 0, y: 3.85, w: '100%', align: 'center',
-            fontSize: 14, color: C_GRIS, fontFace: 'Segoe UI'
-        });
-        portada.addText('Grupo Solvens', {
-            x: 0, y: 6.9, w: '100%', align: 'center',
-            fontSize: 11, color: C_GRIS, fontFace: 'Segoe UI'
+        // --- A. PORTADA (GRIS CLARO CON HEADER ROJO) ---
+        const slidePortada = pptx.addSlide();
+        slidePortada.bkgd = { color: 'F5F5F5' };
+
+        // Header Rojo en Portada
+        slidePortada.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: 10, h: 0.6,
+            fill: { color: 'DC2626' }
         });
 
-        // ── Layouts de imágenes (en pulgadas, slide 13.33 x 7.5) ─────────────
-        const MARGIN = 0.18;
-        const Y_TOP  = 0.72; // debajo del header
-        const H_DISP = 6.6;  // alto disponible
-        const W_DISP = 13.33 - MARGIN * 2;
+        // Valores fijos para el logo como en el cliente (relación 3.5 aprox)
+        const coverLogoW = 3.5;
+        const coverLogoH = 1.0; 
+        const headerLogoW = 1.5;
+        const headerLogoH = 0.45;
 
-        const LAYOUTS = {
-            1: [{ x: MARGIN, y: Y_TOP, w: W_DISP, h: H_DISP }],
-            2: [
-                { x: MARGIN,            y: Y_TOP, w: (W_DISP - 0.12) / 2, h: H_DISP },
-                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP, w: (W_DISP - 0.12) / 2, h: H_DISP }
-            ],
-            3: [
-                { x: MARGIN, y: Y_TOP,             w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + W_DISP / 4, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: W_DISP / 2, h: (H_DISP - 0.12) / 2 }
-            ],
-            4: [
-                { x: MARGIN,            y: Y_TOP,             w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP,             w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN,            y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 }
-            ],
-            5: [
-                { x: MARGIN,             y: Y_TOP,                       w: (W_DISP - 0.24) / 3, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + (W_DISP - 0.24) / 3 + 0.12,             y: Y_TOP,                       w: (W_DISP - 0.24) / 3, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + ((W_DISP - 0.24) / 3 + 0.12) * 2,       y: Y_TOP,                       w: (W_DISP - 0.24) / 3, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + (W_DISP - 0.24) / 4 * 0.5, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 },
-                { x: MARGIN + (W_DISP - 0.12) / 2 + 0.12 + (W_DISP - 0.24) / 4 * 0.5, y: Y_TOP + (H_DISP - 0.12) / 2 + 0.12, w: (W_DISP - 0.12) / 2, h: (H_DISP - 0.12) / 2 }
-            ]
-        };
+        if (logoB64) {
+            slidePortada.addImage({
+                data: logoB64,
+                x: (10 - coverLogoW) / 2, // Centrado horizontal
+                y: 1.0, // Posicionado debajo del header
+                w: coverLogoW,
+                h: coverLogoH,
+                sizing: { type: 'contain', w: coverLogoW, h: coverLogoH }
+            });
+        }
 
+        slidePortada.addText('Reporte de Evidencia Fotográfica', {
+            x: 0, y: 3.2, w: '100%', h: 0.8,
+            fontSize: 32, color: '8B0000', bold: true, align: 'center', fontFace: 'Arial'
+        });
+
+        slidePortada.addText(`Cliente: ${cliente.toUpperCase()}\nExportado el: ${new Date().toLocaleDateString('es-AR')}`, {
+            x: 0, y: 4.6, w: '100%', h: 0.6,
+            fontSize: 12, color: '666666', align: 'center'
+        });
+
+        // ── B. DIAPOSITIVAS DE CONTENIDO ────────────────────────────────────
         for (const suc of sucursales.rows) {
-            // Obtener última visita aprobada a esta sucursal por este cliente
             const visitaResult = await query(`
                 SELECT v.id, v.fecha, u.nombre AS repositor
                 FROM visita v
@@ -874,58 +871,98 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
 
             const visita = visitaResult.rows[0];
 
-            // Obtener imágenes aprobadas (máximo 5)
-            const imagenes = await query(`
+            // En admin permitimos todas las aprobadas (o top 5)
+            const imagenesResult = await query(`
                 SELECT ruta_imagen FROM imagen WHERE id_visita = $1 AND estado = 'Aprobado' LIMIT 5
             `, [visita.id]);
 
-            if (imagenes.rows.length === 0) continue;
+            if (imagenesResult.rows.length === 0) continue;
 
-            // ── Crear slide ───────────────────────────────────────────────────
-            const slide = pptx.addSlide();
-            slide.background = { color: C_NEGRO };
-
-            // Franja roja superior
-            slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.62, fill: { color: C_ROJO }, line: { color: C_ROJO } });
-
-            // Cadena + dirección (izquierda del header)
-            slide.addText(`${suc.cadena.toUpperCase()}  —  ${suc.calle} ${suc.altura || ''}, ${suc.localidad}`, {
-                x: 0.2, y: 0, w: 8.5, h: 0.62,
-                fontSize: 15, bold: true, color: C_BLANCO, fontFace: 'Segoe UI', valign: 'middle'
-            });
-
-            // Fecha + repositor (derecha del header)
-            slide.addText(`${new Date(visita.fecha).toLocaleDateString('es-AR')}  ·  ${visita.repositor}`, {
-                x: 8.8, y: 0, w: 4.33, h: 0.62,
-                fontSize: 11, color: C_BLANCO, fontFace: 'Segoe UI', align: 'right', valign: 'middle'
-            });
-
-            // ── Imágenes con layout adaptativo ───────────────────────────────
-            const count = Math.min(imagenes.rows.length, 5);
-            const positions = LAYOUTS[count];
-
-            for (let i = 0; i < count; i++) {
-                const img = imagenes.rows[i];
+            // Procesar imágenes a base64
+            let imagenesB64 = [];
+            for (const img of imagenesResult.rows) {
                 try {
                     const imgRes = await fetch(img.ruta_imagen);
                     if (!imgRes.ok) continue;
 
-                    // Detectar tipo real de imagen para evitar XML inválido en el PPTX
                     const ct = (imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
-                    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                    const mimeType = tiposPermitidos.includes(ct) ? ct : 'image/jpeg';
-
                     const buf = Buffer.from(await imgRes.arrayBuffer());
-                    if (buf.length === 0) continue;
+                    if (buf.length > 0) {
+                        imagenesB64.push(`data:${ct};base64,${buf.toString('base64')}`);
+                    }
+                } catch (e) {}
+            }
 
-                    const pos = positions[i];
+            if (imagenesB64.length === 0) continue;
+
+            // Chunkear imágenes si hay más de 3 (como el cliente: 1-3, 4->2/2, 5->3/2)
+            let imageChunks = [];
+            if (imagenesB64.length <= 3) {
+                imageChunks.push(imagenesB64);
+            } else if (imagenesB64.length === 4) {
+                imageChunks.push(imagenesB64.slice(0, 2), imagenesB64.slice(2, 4));
+            } else if (imagenesB64.length === 5) {
+                imageChunks.push(imagenesB64.slice(0, 3), imagenesB64.slice(3, 5));
+            }
+
+            for (let cIdx = 0; cIdx < imageChunks.length; cIdx++) {
+                const imgs = imageChunks[cIdx];
+                const count = imgs.length;
+
+                const slide = pptx.addSlide();
+                slide.bkgd = { color: 'F9F9F9' };
+
+                // Header Rojo
+                slide.addShape(pptx.ShapeType.rect, {
+                    x: 0, y: 0, w: 10, h: 0.6,
+                    fill: { color: 'DC2626' }
+                });
+
+                if (logoB64) {
                     slide.addImage({
-                        data: `data:${mimeType};base64,${buf.toString('base64')}`,
-                        x: pos.x, y: pos.y, w: pos.w, h: pos.h,
-                        sizing: { type: 'contain', w: pos.w, h: pos.h }
+                        data: logoB64,
+                        x: 0.2, y: (0.6 - headerLogoH) / 2, // Centrado vertical en el header
+                        w: headerLogoW,
+                        h: headerLogoH,
+                        sizing: { type: 'contain', w: headerLogoW, h: headerLogoH }
                     });
-                } catch (err) {
-                    console.error('Error al obtener imagen:', err);
+                }
+
+                const fechaStr = new Date(visita.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
+                slide.addText(`${suc.cadena} | ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                    x: 1.5, y: 0.05, w: 8.3, h: 0.5,
+                    fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
+                });
+
+                // Título PDV
+                slide.addText(`${suc.calle} ${suc.altura || ''} - ${suc.localidad}`, {
+                    x: 0.5, y: 0.7, w: 9, h: 0.4,
+                    fontSize: 20, color: 'DC2626', bold: true
+                });
+
+                // Layout dinámico centrado para 1, 2 o 3 imágenes
+                const areaY = 1.3, areaW = 9, areaH = 4.1;
+                const gutter = 0.3; 
+
+                let cW = (areaW - (count - 1) * gutter) / count;
+                let cH = areaH;
+                let startX = 0.5;
+
+                if (count === 1) {
+                    cW = 5;
+                    startX = 0.5 + (areaW - cW) / 2; // Centrado
+                } else if (count === 2) {
+                    cW = 4;
+                    startX = 0.5 + (areaW - (cW * 2 + gutter)) / 2; // Centrado
+                }
+
+                for (let i = 0; i < count; i++) {
+                    slide.addImage({
+                        data: imgs[i],
+                        x: startX + i * (cW + gutter),
+                        y: areaY,
+                        sizing: { type: 'contain', w: cW, h: cH }
+                    });
                 }
             }
         }
@@ -1173,8 +1210,38 @@ app.get('/api/reporte-visitas-cliente', async (req, res, next) => {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CARGA IMÁGENES POR CLIENTE
+// CARGA IMÁGENES POR CLIENTE / VISITAS POR SEMANA
 // ═══════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/visitas-semana-cliente', async (req, res, next) => {
+    const { id_cliente } = req.query;
+    if (!id_cliente) return res.status(400).json({ error: 'Falta id_cliente' });
+    try {
+        const check = await query('SELECT id FROM usuario WHERE id = $1', [id_cliente]);
+        if (check.rows.length === 0)
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+
+        const result = await query(`
+            SELECT s.id AS "idSucursal",
+                   c.nombre || ' - ' || s.calle || ' ' || COALESCE(CAST(s.altura AS VARCHAR),'') ||
+                       ', ' || s.localidad AS "NombreSucursal",
+                   (
+                        SELECT COUNT(*) FROM visita v2
+                        WHERE v2.id_sucursal = s.id
+                          AND v2.id_cliente = $1
+                          AND v2.fecha >= date_trunc('week', CURRENT_DATE)
+                          AND v2.fecha < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+                   ) AS "VisitasSemanales"
+            FROM abastece a
+            JOIN sucursal s ON a.id_sucursal = s.id
+            LEFT JOIN cadena c ON s.id_cadena = c.id
+            WHERE a.id_cliente = $1
+            ORDER BY "NombreSucursal"
+        `, [id_cliente]);
+
+        res.json(result.rows);
+    } catch (e) { next(e); }
+});
 
 app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
     const { id_cliente } = req.query;

@@ -48,12 +48,11 @@
                             <th>Cliente</th>
                             <th>Cadena</th>
                             <th>Sucursal</th>
-                            <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoTabla">
                         <tr>
-                            <td colspan="5">
+                            <td colspan="4">
                                 <div class="estado-tabla">
                                     <div class="spinner"></div>
                                     <p>Cargando datos...</p>
@@ -95,7 +94,7 @@
                 paginaActual = 1;
                 renderTabla();
             } catch {
-                cuerpo.innerHTML = `<tr><td colspan="5"><div class="estado-tabla">
+                cuerpo.innerHTML = `<tr><td colspan="4"><div class="estado-tabla">
                     <i class="fas fa-exclamation-circle" style="color:#dc2626;font-size:48px;"></i>
                     <p>Error al conectar con el servidor.</p>
                 </div></td></tr>`;
@@ -110,7 +109,7 @@
             conteoEl.textContent = total;
 
             if (total === 0) {
-                cuerpo.innerHTML = `<tr><td colspan="5"><div class="estado-tabla">
+                cuerpo.innerHTML = `<tr><td colspan="4"><div class="estado-tabla">
                     <i class="fas fa-search" style="color:#3b82f6;opacity:0.5;font-size:48px;"></i>
                     <p>No hay visitas registradas este mes.</p>
                 </div></td></tr>`;
@@ -130,7 +129,6 @@
                     <td>${v.cliente || '-'}</td>
                     <td>${v.cadena || '-'}</td>
                     <td>${v.sucursal || '-'}</td>
-                    <td><span class="status-pill status-${estadoClass}">${v.estado || 'Pendiente'}</span></td>
                 </tr>`;
             }).join('');
 
