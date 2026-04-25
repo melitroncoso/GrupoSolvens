@@ -438,7 +438,7 @@ button:active {
     color: #fbbf24;
 }
 
-.toast.visible {
+.toast.visible, #toast.visible {
     opacity: 1;
     transform: translateY(0);
 }
