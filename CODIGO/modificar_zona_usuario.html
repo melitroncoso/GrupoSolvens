@@ -6,6 +6,45 @@
     <title>Modificar Zona - Solvens</title>
     <link rel="stylesheet" href="style/formulario.css">
     <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .btn-buscar {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-buscar:hover { background-color: #0369a1; }
+        .info-usuario {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 5px;
+            color: #166534;
+            display: none;
+        }
+        .seccion-modificar {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+    </style>
 </head>
 
 <body>
@@ -28,23 +67,32 @@
     </header>
     <main class="contenido">
         <h1>Modificar <span>Zona</span></h1>
-        <p class="subtitulo">Ingresa el nombre de usuario y selecciona la nueva zona</p>
+        <p class="subtitulo">Verifica el usuario y asignale una nueva zona</p>
 
-        <form class="formulario" id="form-modificar-zona">
+        <div class="formulario">
             <div class="fila">
                 <label>Nombre de Usuario:</label><br><br>
-                <input type="text" id="input-usuario" placeholder="Ej: jlopez" required style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <div class="input-group">
+                    <input type="text" id="input-usuario" placeholder="Ej: jlopez" required>
+                    <button id="btn-verificar" class="btn-buscar"><i class="fas fa-search"></i> Verificar</button>
+                </div>
             </div>
 
-            <div class="fila" style="margin-top:20px;">
-                <label>Zona:</label><br><br>
-                <select id="select-zona" required>
-                    <option value="" disabled selected>Cargando zonas...</option>
-                </select>
+            <div id="info-usuario" class="info-usuario">
+                <i class="fas fa-check-circle"></i> <strong>Usuario encontrado.</strong> <br>
+                Zona actual: <span id="zona-actual-text"></span>
             </div>
 
-            <button type="submit" class="btn-guardar-verde" style="margin-top:20px; width: 100%;">Guardar Cambios</button>
-        </form>
+            <form id="form-modificar-zona" class="seccion-modificar">
+                <div class="fila">
+                    <label>Nueva Zona:</label><br><br>
+                    <select id="select-zona" required>
+                        <option value="" disabled selected>Cargando zonas...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-guardar-verde" style="margin-top:20px; width: 100%;">Guardar Cambios</button>
+            </form>
+        </div>
     </main>
 
     <div class="toast" id="toast"></div>
@@ -53,6 +101,12 @@
         const URL_BASE = '/api';
         const selectZona = document.getElementById('select-zona');
         const form = document.getElementById('form-modificar-zona');
+        const btnVerificar = document.getElementById('btn-verificar');
+        const inputUsuario = document.getElementById('input-usuario');
+        const infoUsuarioDiv = document.getElementById('info-usuario');
+        const zonaActualText = document.getElementById('zona-actual-text');
+        
+        let usuarioVerificado = null;
 
         // 1. Cargar Zonas
         async function cargarZonas() {
@@ -65,18 +119,62 @@
                 });
             } catch (err) {
                 console.error("Error al cargar zonas:", err);
-                mostrarToast("❌ Error al cargar zonas.", "error");
             }
         }
 
-        // 2. Enviar actualización
+        // 2. Verificar usuario
+        btnVerificar.addEventListener('click', async () => {
+            const usuario = inputUsuario.value.trim();
+            if (!usuario) {
+                mostrarToast("⚠️ Ingrese un usuario para verificar.", "error");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${URL_BASE}/info-zona-usuario?usuario=${encodeURIComponent(usuario)}`);
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    usuarioVerificado = data.data.usuario;
+                    zonaActualText.textContent = data.data.nombre_zona ? data.data.nombre_zona : 'Ninguna (Sin Asignar)';
+                    
+                    if (data.data.id_zona) {
+                        selectZona.value = data.data.id_zona;
+                    } else {
+                        selectZona.value = "";
+                    }
+
+                    infoUsuarioDiv.style.display = 'block';
+                    form.style.display = 'block';
+                    mostrarToast("✅ Usuario verificado.", "exito");
+                } else {
+                    infoUsuarioDiv.style.display = 'none';
+                    form.style.display = 'none';
+                    usuarioVerificado = null;
+                    mostrarToast("❌ " + (data.message || "Usuario no encontrado."), "error");
+                }
+            } catch (err) {
+                console.error("Error al verificar:", err);
+                mostrarToast("❌ Error al verificar usuario.", "error");
+            }
+        });
+
+        // Reiniciar si cambia el input
+        inputUsuario.addEventListener('input', () => {
+            if (usuarioVerificado !== inputUsuario.value.trim()) {
+                infoUsuarioDiv.style.display = 'none';
+                form.style.display = 'none';
+                usuarioVerificado = null;
+            }
+        });
+
+        // 3. Enviar actualización
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const usuario = document.getElementById('input-usuario').value.trim();
             const id_zona = selectZona.value;
 
-            if (!usuario || !id_zona) {
-                mostrarToast("⚠️ Complete todos los campos.", "error");
+            if (!usuarioVerificado || !id_zona) {
+                mostrarToast("⚠️ Verifique el usuario y seleccione una zona.", "error");
                 return;
             }
 
@@ -84,14 +182,15 @@
                 const res = await fetch(`${URL_BASE}/actualizar-zona-usuario`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ usuario, id_zona })
+                    body: JSON.stringify({ usuario: usuarioVerificado, id_zona })
                 });
 
                 const data = await res.json();
 
                 if (res.ok && data.success) {
                     mostrarToast("✅ " + data.message, "exito");
-                    form.reset();
+                    // Actualizar el texto mostrado
+                    zonaActualText.textContent = selectZona.options[selectZona.selectedIndex].text;
                 } else {
                     mostrarToast("❌ " + (data.message || "Error al actualizar."), "error");
                 }
@@ -112,5 +211,4 @@
         cargarZonas();
     </script>
 </body>
-
 </html>

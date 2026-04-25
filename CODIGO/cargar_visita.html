@@ -133,7 +133,7 @@
         const labelFotos  = document.getElementById('labelFotos');
 
         // ID del repositor logueado — fuente de verdad para el filtro de zona
-        const idRepo = localStorage.getItem('id_usuario');
+        const idRepo = sessionStorage.getItem('id_usuario');
 
         /* 
         const buscarInput = document.getElementById('buscarProducto');
@@ -177,7 +177,7 @@
                 });
 
                 // Preseleccionar cliente si viene del localStorage
-                const idCliGuardado = localStorage.getItem('id_cliente_sel');
+                const idCliGuardado = sessionStorage.getItem('id_cliente_sel');
                 if (idCliGuardado) {
                     clienteSel.value = idCliGuardado;
                     if (clienteSel.value) clienteSel.dispatchEvent(new Event('change'));
@@ -224,7 +224,7 @@
             poblarCadenas(sucursales);
 
             // Preseleccionar cadena si viene del localStorage
-            const cadenaGuardada = localStorage.getItem('cadena_sel');
+            const cadenaGuardada = sessionStorage.getItem('cadena_sel');
             if (cadenaGuardada) {
                 cadenaSel.value = cadenaGuardada;
                 if (cadenaSel.value) cadenaSel.dispatchEvent(new Event('change'));
@@ -250,7 +250,7 @@
             poblarSucursales(cadenaSel.value);
 
             // Preseleccionar sucursal si viene del localStorage
-            const sucGuardada = localStorage.getItem('sucursal_sel');
+            const sucGuardada = sessionStorage.getItem('sucursal_sel');
             if (sucGuardada) {
                 sucursalSel.value = sucGuardada;
             }

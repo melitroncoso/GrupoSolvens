@@ -194,7 +194,7 @@
     <script>
         const API_BASE = '/api';
         const FILAS_PAGINA = 50;
-        const id = localStorage.getItem('id_usuario');
+        const id = sessionStorage.getItem('id_usuario');
 
         let datosCompletos = [];
         let paginaActual = 1;
@@ -202,7 +202,7 @@
         let sortDir = 'asc';
 
         // ID del cliente desde la sesión
-        const idCliente = localStorage.getItem('id_usuario');
+        const idCliente = sessionStorage.getItem('id_usuario');
 
         const cuerpo = document.getElementById('cuerpoTabla');
         const conteoEl = document.getElementById('conteoResultados');
@@ -246,7 +246,7 @@
             }
 
             // Subtítulo con nombre del cliente
-            const nombre = localStorage.getItem('nombre_usuario');
+            const nombre = sessionStorage.getItem('nombre_usuario');
             document.getElementById('subtitulo').textContent =
                 nombre ? `Visitas registradas para ${nombre}.` : 'Visitas registradas para tu cuenta.';
 

@@ -309,6 +309,23 @@ app.delete('/api/eliminar-usuario/:id', async (req, res, next) => {
     } catch (e) { next(e); }
 });
 
+app.get('/api/info-zona-usuario', async (req, res, next) => {
+    const { usuario } = req.query;
+    try {
+        const result = await query(`
+            SELECT u.id, u.usuario, u.id_zona, z.nombre AS nombre_zona
+            FROM usuario u
+            LEFT JOIN zona z ON u.id_zona = z.id
+            WHERE u.usuario = $1
+        `, [usuario]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado.' });
+        }
+        res.json({ success: true, data: result.rows[0] });
+    } catch (e) { next(e); }
+});
+
 app.put('/api/actualizar-zona-usuario', async (req, res, next) => {
     const { usuario, id_zona } = req.body;
     try {

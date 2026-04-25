@@ -186,7 +186,7 @@
         let currentLightboxImgId = null;
 
         async function cargarVisitasAdmin() {
-            const tipo = Number(localStorage.getItem('tipoUsuario'));
+            const tipo = Number(sessionStorage.getItem('tipoUsuario'));
             if (tipo !== 1) {
                 window.location.href = 'login.html';
                 return;
