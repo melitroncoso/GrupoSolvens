@@ -625,7 +625,7 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
 
                 await client.query(
                     'INSERT INTO imagen (ruta_imagen, id_visita, estado) VALUES ($1,$2,$3)',
-                    [urlPublica, vId, (nombreCliente.includes('DEL VALLE') || id_cliente == '317') ? 'Aprobado' : 'Pendiente']
+                    [urlPublica, vId, (nombreCliente.includes('DEL VALLE') || nombreCliente.includes('317')) ? 'Aprobado' : 'Pendiente']
                 );
             }
         }
