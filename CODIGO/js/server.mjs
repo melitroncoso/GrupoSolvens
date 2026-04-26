@@ -625,7 +625,7 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
 
                 await client.query(
                     'INSERT INTO imagen (ruta_imagen, id_visita, estado) VALUES ($1,$2,$3)',
-                    [urlPublica, vId, nombreCliente.includes('DEL VALLE') ? 'Aprobado' : 'Pendiente']
+                    [urlPublica, vId, (nombreCliente.includes('DEL VALLE') || id_cliente == '317') ? 'Aprobado' : 'Pendiente']
                 );
             }
         }
@@ -805,6 +805,95 @@ app.patch('/api/imagen/:id/estado', async (req, res, next) => {
 
         await query('UPDATE imagen SET estado = $1 WHERE id = $2', [estado, id]);
         res.json({ success: true });
+    } catch (e) { next(e); }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUPERVISOR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Imágenes aprobadas para supervisor: filtra por las zonas y clientes que supervisa
+app.get('/api/imagenes-supervisor', async (req, res, next) => {
+    const { id_supervisor } = req.query;
+    if (!id_supervisor) return res.status(400).json({ error: 'Falta id_supervisor' });
+    try {
+        // Verificar que sea supervisor
+        const check = await query(
+            `SELECT u.id FROM usuario u
+             JOIN tipo_usuario t ON u.id_tipo_usuario = t.id
+             WHERE u.id = $1 AND t.tipo = 'Supervisor'`,
+            [id_supervisor]
+        );
+        if (check.rows.length === 0)
+            return res.status(403).json({ error: 'Acceso no autorizado' });
+
+        // Obtener las combinaciones (id_zona, id_cliente) que puede ver
+        const supervisa = await query(
+            `SELECT id_zona, id_cliente FROM supervisa WHERE id_supervisor = $1`,
+            [id_supervisor]
+        );
+        if (supervisa.rows.length === 0) return res.json([]);
+
+        // Construir condiciones dinámicas
+        const conditions = supervisa.rows.map((r, i) => {
+            const pz = i * 2 + 2;
+            const pc = i * 2 + 3;
+            return `(sz.id_zona = $${pz} AND v.id_cliente = $${pc})`;
+        });
+        const params = [id_supervisor];
+        supervisa.rows.forEach(r => { params.push(r.id_zona); params.push(r.id_cliente); });
+
+        const sql = `
+            WITH latest_visits AS (
+                SELECT v.id AS id_visita_row, v.id_sucursal,
+                       ROW_NUMBER() OVER (PARTITION BY v.id_sucursal, v.id_cliente ORDER BY v.fecha DESC, v.id DESC) AS rn
+                FROM visita v
+                JOIN sucursal s   ON v.id_sucursal = s.id
+                LEFT JOIN subzona sz ON s.id_subzona = sz.id
+                WHERE EXISTS (SELECT 1 FROM imagen im WHERE im.id_visita = v.id AND im.estado = 'Aprobado')
+                  AND (${conditions.join(' OR ')})
+            )
+            SELECT v.id AS "idVisita", v.fecha AS "Fecha",
+                   urepo.nombre AS "Repositor", ca.nombre AS "Cadena",
+                   ucli.nombre AS "Cliente",
+                   s.localidad AS "Localidad",
+                   s.calle || ' ' || COALESCE(CAST(s.altura AS VARCHAR),'') AS "Sucursal",
+                   sz.nombre AS "SubzonaNombre", z.nombre AS "ZonaNombre",
+                   tc.tipo AS "CanalTipo",
+                   im.id AS "idImagen", im.ruta_imagen AS "Ruta_Imagen", im.estado AS "EstadoImagen"
+            FROM latest_visits lv
+            JOIN visita v       ON lv.id_visita_row = v.id
+            JOIN usuario urepo  ON v.id_repo = urepo.id
+            JOIN usuario ucli   ON v.id_cliente = ucli.id
+            JOIN sucursal s     ON v.id_sucursal = s.id
+            JOIN cadena ca      ON s.id_cadena = ca.id
+            LEFT JOIN subzona sz ON s.id_subzona = sz.id
+            LEFT JOIN zona z     ON sz.id_zona = z.id
+            LEFT JOIN tipo_cadena tc ON ca.id_tipo = tc.id
+            JOIN imagen im      ON im.id_visita = v.id
+            WHERE lv.rn = 1 AND im.estado = 'Aprobado'
+            ORDER BY ucli.nombre, v.fecha DESC`;
+
+        const result = await query(sql, params);
+
+        const grouped = {};
+        const finalArray = [];
+        const seen = new Set();
+        result.rows.forEach(r => {
+            if (!grouped[r.idVisita]) {
+                grouped[r.idVisita] = {
+                    id: r.idVisita, fecha: r.Fecha, repositor: r.Repositor,
+                    cadena: r.Cadena, cliente: r.Cliente, localidad: r.Localidad,
+                    sucursal: r.Sucursal, subzona: r.SubzonaNombre,
+                    zona: r.ZonaNombre, canal: r.CanalTipo, imagenes: []
+                };
+            }
+            grouped[r.idVisita].imagenes.push({ id: r.idImagen, ruta: r.Ruta_Imagen, estado: r.EstadoImagen });
+            if (!seen.has(r.idVisita)) { finalArray.push(grouped[r.idVisita]); seen.add(r.idVisita); }
+        });
+
+        res.json(finalArray);
     } catch (e) { next(e); }
 });
 

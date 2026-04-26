@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Supervisor - Grupo Solvens</title>
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/inicio.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left"></div>
+        <div class="header-center">
+            <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+        </div>
+        <div class="header-right">
+            <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+        </div>
+    </header>
+
+    <main class="contenedor-principal">
+        <div class="bienvenida">
+            <h1>Panel de <span>Supervisor</span></h1>
+            <p id="subtituloBienvenida">Bienvenido</p>
+        </div>
+
+        <div class="grid-acciones" style="flex-direction: row;">
+            <div class="tarjeta-accion">
+                <i class="fa-solid fa-images"></i>
+                <h3>Ver Imágenes</h3>
+                <p>Revisá la evidencia fotográfica aprobada de tus clientes asignados</p>
+                <a class="btn-entrar" href="vista_fotos_supervisor.html">Ver imágenes</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-contacto">
+        <p>
+            <i class="fa-solid fa-envelope"></i>
+            <a href="mailto:NRossi@gruposolvens.com.ar" style="color:#aaaaaa;text-decoration:none;">NRossi@gruposolvens.com.ar</a>
+            | <i class="fa-solid fa-phone"></i> +54 11 6142-0293
+        </p>
+    </footer>
+
+    <script>
+        // Verificar sesión
+        const tipo = Number(localStorage.getItem('tipoUsuario'));
+        const nombre = localStorage.getItem('nombre_usuario') || '';
+        const idSupervisor = localStorage.getItem('id_usuario');
+
+        // Redirigir si no es supervisor
+        // El tipo se obtiene del login — ajustá el número si varía en tu BD
+        if (!idSupervisor) window.location.href = 'login.html';
+
+        document.getElementById('subtituloBienvenida').textContent =
+            nombre ? `Bienvenido, ${nombre}` : 'Panel de supervisión';
+
+        document.querySelectorAll('.tarjeta-accion').forEach(card => {
+            const link = card.querySelector('.btn-entrar');
+            if (link) {
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', e => {
+                    if (!e.target.closest('.btn-entrar')) window.location.href = link.href;
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
