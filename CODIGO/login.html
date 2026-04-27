@@ -110,6 +110,7 @@
                 const tipo = Number(data.tipo);
                 if (tipo === 1) window.location.href = 'inicioAdmin.html';
                 else if (tipo === 2) window.location.href = 'inicioCliente.html';
+                else if (tipo === 4) window.location.href = 'inicioSupervisor.html';
                 else window.location.href = 'inicioRepositor.html';
             } else {
                 mostrarToast(data.message || "Usuario o contraseña incorrectos");
