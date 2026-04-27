@@ -157,7 +157,7 @@
             sucursalSel.innerHTML = '<option value="" disabled selected>Seleccione Sucursal</option>';
             filtradas.forEach(s => {
                 const altura = s.Altura ? ` ${s.Altura}` : '';
-                sucursalSel.innerHTML += `<option value="${s.ID}">${s.Calle}${altura} — ${s.Localidad}</option>`;
+                sucursalSel.innerHTML += `<option value="${s.ID}">${s.Localidad} — ${s.Calle}${altura}</option>`;
             });
             sucursalSel.disabled = filtradas.length === 0;
             if (filtradas.length === 0) {

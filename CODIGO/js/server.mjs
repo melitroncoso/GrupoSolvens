@@ -178,21 +178,43 @@ app.get('/api/buscar-sucursales', async (req, res, next) => {
 });
 
 app.post('/api/agregar-sucursal', async (req, res, next) => {
-    const { calle, altura, localidad, id_subzona, id_cadena } = req.body;
+    const { calle, altura, localidad, id_subzona, id_cadena, clientesIds } = req.body;
+    const client = await getClient();
     try {
-        const existe = await query(
+        await client.query('BEGIN');
+        const existe = await client.query(
             'SELECT id FROM sucursal WHERE calle = $1 AND altura = $2 AND id_cadena = $3',
             [calle, altura, id_cadena]
         );
-        if (existe.rows.length > 0)
+        if (existe.rows.length > 0) {
+            await client.query('ROLLBACK');
             return res.status(400).json({ success: false, message: 'Ya registrada' });
+        }
 
-        await query(
-            'INSERT INTO sucursal (calle, altura, localidad, id_subzona, id_cadena) VALUES ($1,$2,$3,$4,$5)',
+        const ins = await client.query(
+            'INSERT INTO sucursal (calle, altura, localidad, id_subzona, id_cadena) VALUES ($1,$2,$3,$4,$5) RETURNING id',
             [calle, altura, localidad, id_subzona, id_cadena]
         );
-        res.json({ success: true, message: 'Sucursal guardada' });
-    } catch (e) { next(e); }
+        const idSucursal = ins.rows[0].id;
+
+        // Vincular con clientes si se seleccionaron
+        if (Array.isArray(clientesIds) && clientesIds.length > 0) {
+            for (const idCliente of clientesIds) {
+                await client.query(
+                    'INSERT INTO abastece (id_cliente, id_sucursal) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+                    [idCliente, idSucursal]
+                );
+            }
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Sucursal guardada y vinculada correctamente' });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        next(e);
+    } finally {
+        client.release();
+    }
 });
 
 app.delete('/api/eliminar-sucursal/:id', async (req, res, next) => {
@@ -587,7 +609,7 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
         // Validar límite de fotos según cliente (AGD = 5, resto = 3)
         const clienteRow = await query(`SELECT nombre FROM usuario WHERE id = $1`, [id_cliente]);
         const nombreCliente = clienteRow.rows[0]?.nombre?.toUpperCase() || '';
-        const maxFotos = nombreCliente.includes('AGD') ? 5 : 3;
+        const maxFotos = (nombreCliente.includes('AGD') || nombreCliente.includes('DEL VALLE') || nombreCliente.includes('317')) ? 5 : 3;
 
         if (req.files && req.files.length > maxFotos) {
             return res.status(400).json({
@@ -1320,17 +1342,25 @@ app.get('/api/reporte-visitas-cliente', async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/visitas-semana-cliente', async (req, res, next) => {
-    const { id_cliente } = req.query;
+    const { id_cliente, id_zona } = req.query;
     if (!id_cliente) return res.status(400).json({ error: 'Falta id_cliente' });
     try {
         const check = await query('SELECT id FROM usuario WHERE id = $1', [id_cliente]);
         if (check.rows.length === 0)
             return res.status(404).json({ error: 'Cliente no encontrado' });
 
+        const params = [id_cliente];
+        let zonaFilter = '';
+        if (id_zona) {
+            params.push(id_zona);
+            zonaFilter = `AND sz.id_zona = $${params.length}`;
+        }
+
         const result = await query(`
             SELECT s.id AS "idSucursal",
                    c.nombre || ' - ' || s.calle || ' ' || COALESCE(CAST(s.altura AS VARCHAR),'') ||
                        ', ' || s.localidad AS "NombreSucursal",
+                   z.nombre AS "Zona",
                    (
                         SELECT COUNT(*) FROM visita v2
                         WHERE v2.id_sucursal = s.id
@@ -1341,9 +1371,11 @@ app.get('/api/visitas-semana-cliente', async (req, res, next) => {
             FROM abastece a
             JOIN sucursal s ON a.id_sucursal = s.id
             LEFT JOIN cadena c ON s.id_cadena = c.id
-            WHERE a.id_cliente = $1
+            LEFT JOIN subzona sz ON s.id_subzona = sz.id
+            LEFT JOIN zona z ON sz.id_zona = z.id
+            WHERE a.id_cliente = $1 ${zonaFilter}
             ORDER BY "NombreSucursal"
-        `, [id_cliente]);
+        `, params);
 
         res.json(result.rows);
     } catch (e) { next(e); }

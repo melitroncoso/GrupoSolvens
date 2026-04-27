@@ -416,7 +416,7 @@
         };
 
         function populateFilters() {
-            const makeOptions = (arr) => [...new Set(arr)].sort();
+            const makeOptions = (arr) => [...new Set(arr)].filter(Boolean).sort((a,b) => a.localeCompare(b, 'es'));
             const llenar = (id, items, prefix) => {
                 const sel = document.getElementById(id);
                 sel.innerHTML = `<option value="">${prefix}</option>` +

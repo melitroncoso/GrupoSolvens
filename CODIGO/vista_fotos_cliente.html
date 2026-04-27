@@ -250,7 +250,7 @@
 
         function populateFilters() {
             const makeOptions = (items) => {
-                const uniq = [...new Set(items)];
+                const uniq = [...new Set(items)].filter(Boolean).sort((a,b) => a.localeCompare(b, 'es'));
                 return uniq.map(x => `<option value="${x}">${x}</option>`).join('');
             };
             const llenar = (id, opciones, titulo) => {
@@ -450,22 +450,19 @@
         }
 
         async function generarReportePPTX() {
-            const idCliente = sessionStorage.getItem('id_usuario');
-            if (!idCliente) return;
-
             const btn = document.getElementById('btnExportarPPTX');
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Generando...</span>';
             btn.disabled = true;
 
             try {
-                // 1. Obtener los datos frescos (última visita aprobada por PDV)
-                const res = await fetch(`${URL_BASE}/imagenes-aprobadas-cliente?id_cliente=${idCliente}&latest=1`);
-                if (!res.ok) throw new Error('Error al obtener datos');
-                const ultimasVisitas = await res.json();
+                // Usar las visitas ya filtradas en pantalla
+                const ultimasVisitas = filteredVisitas;
 
                 if (!ultimasVisitas || ultimasVisitas.length === 0) {
-                    alert('No hay visitas aprobadas recientes para exportar.');
+                    alert('No hay visitas aprobadas para exportar con los filtros actuales.');
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
                     return;
                 }
 
@@ -520,7 +517,7 @@
                     }
                 }
 
-                slidePortada.addText('Reporte de Evidencia Fotográfica', {
+                slidePortada.addText('Reporte Fotográfico de Visitas', {
                     x: 0, y: 3.2, w: '100%', h: 0.8,
                     fontSize: 32, color: '8B0000', bold: true, align: 'center', fontFace: 'Arial'
                 });
@@ -614,7 +611,7 @@
                     }
                 }
 
-                await pptx.writeFile({ fileName: `Reporte_Solvens_${idCliente}.pptx` });
+                await pptx.writeFile({ fileName: `Reporte_Fotografico_Visitas_${new Date().toISOString().slice(0,10)}.pptx` });
 
             } catch (err) {
                 console.error('Error al generar PPTX:', err);
