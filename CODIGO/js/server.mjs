@@ -40,7 +40,20 @@ const R2_BUCKET   = process.env.R2_BUCKET_NAME;
 const R2_BASE_URL = process.env.R2_PUBLIC_URL; // ej: https://pub-xxx.r2.dev
 
 async function subirImagenR2(buffer, nombreArchivo) {
-    const comprimido = await sharp(buffer)
+    // Convertir cualquier formato (incluyendo HEIC/HEIF) a JPEG mediante sharp.
+    // sharp detecta el tipo de imagen por magic bytes, no por extensión,
+    // por lo que puede manejar HEIC, AVIF, WebP, PNG, TIFF, etc.
+    // Si sharp no tiene soporte nativo para HEIC (libheif no compilado),
+    // intentamos igual y dejamos que falle con un mensaje claro.
+    let sharpInstance;
+    try {
+        sharpInstance = sharp(buffer, { failOn: 'none' });
+    } catch (e) {
+        throw new Error(`No se pudo leer la imagen: ${e.message}`);
+    }
+
+    const comprimido = await sharpInstance
+        .rotate()                                              // aplica EXIF orientation automáticamente
         .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
         .toBuffer();
@@ -56,9 +69,20 @@ async function subirImagenR2(buffer, nombreArchivo) {
 }
 
 // ── MULTER (memoria, sin guardar en disco) ────────────────────────────────────
+// Se acepta hasta 25 MB por archivo para dar margen a HEIC/HEIF sin comprimir.
+// El backend convierte todo a JPEG con sharp antes de subir a R2.
+const ALLOWED_EXTENSIONS = /\.(jpe?g|png|gif|webp|bmp|tiff?|heic|heif|avif|svg)$/i;
+
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 2 * 1024 * 1024 }
+    limits: { fileSize: 25 * 1024 * 1024 },
+    fileFilter(req, file, cb) {
+        const mimeOk = file.mimetype.startsWith('image/') ||
+                       file.mimetype === 'application/octet-stream'; // algunos browsers envían HEIC así
+        const extOk  = ALLOWED_EXTENSIONS.test(file.originalname);
+        if (mimeOk || extOk) return cb(null, true);
+        cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}`));
+    },
 });
 
 

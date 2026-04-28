@@ -297,7 +297,7 @@
         */
 
         // 6. FOTOS
-        inputFotos.addEventListener('change', function () {
+        inputFotos.addEventListener('change', async function () {
             const previewContenedor = document.getElementById('previewFotos');
             const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent;
             const maxFotos = (nombreCliente && nombreCliente.toUpperCase().includes('AGD')) ? 5 : 3;
@@ -316,14 +316,21 @@
                 : `Seleccionar fotos (máx. ${maxFotos})`;
 
             previewContenedor.innerHTML = '';
-            Array.from(this.files).forEach(file => {
-                const url = URL.createObjectURL(file);
+            for (const file of Array.from(this.files)) {
+                const url = await obtenerPreviewUrl(file);
                 const img = document.createElement('img');
-                img.src = url;
-                img.className = 'preview-img';
-                img.onload = () => URL.revokeObjectURL(url);
+                if (url) {
+                    img.src = url;
+                    img.className = 'preview-img';
+                    img.onload = () => URL.revokeObjectURL(url);
+                } else {
+                    // HEIC no convertible: mostrar ícono placeholder
+                    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="8" fill="%23333"/><text x="40" y="48" text-anchor="middle" fill="%23aaa" font-size="28">📷</text></svg>';
+                    img.className = 'preview-img';
+                    img.title = file.name;
+                }
                 previewContenedor.appendChild(img);
-            });
+            }
 
             if (cant === maxFotos) {
                 mostrarToastFotos(`${maxFotos} de ${maxFotos} fotos cargadas — límite alcanzado`);
@@ -332,7 +339,23 @@
             }
         });
 
-        const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+        // ── UTILIDADES DE IMAGEN ─────────────────────────────────────────────────
+        // Tamaño máximo antes de comprimir (25 MB — el servidor acepta hasta 25 MB)
+        const MAX_IMAGE_SIZE = 25 * 1024 * 1024;
+
+        // Tipos HEIC/HEIF que muchos navegadores Android no pueden mostrar ni subir bien
+        const HEIC_TYPES = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'];
+        const esHEIC = file =>
+            HEIC_TYPES.includes(file.type.toLowerCase()) ||
+            /\.heic$/i.test(file.name) ||
+            /\.heif$/i.test(file.name);
+
+        const readFileAsArrayBuffer = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
 
         const readFileAsDataURL = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -352,58 +375,80 @@
             canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo crear blob')), type, quality);
         });
 
-        const compressImageFile = async (file, maxSize = MAX_IMAGE_SIZE) => {
-            if (!file.type.startsWith('image/') || file.size <= maxSize) {
+        /**
+         * Convierte un File HEIC/HEIF a JPEG usando un <img> + canvas.
+         * En navegadores modernos de Android (Chrome 90+) createImageBitmap
+         * puede decodificar HEIC; en los que no pueden, enviamos el archivo
+         * tal cual y dejamos que sharp en el servidor lo maneje.
+         */
+        const heicToJpeg = async file => {
+            try {
+                const ab = await readFileAsArrayBuffer(file);
+                const bitmap = await createImageBitmap(new Blob([ab], { type: 'image/jpeg' }));
+                const canvas = document.createElement('canvas');
+                canvas.width  = bitmap.width;
+                canvas.height = bitmap.height;
+                canvas.getContext('2d').drawImage(bitmap, 0, 0);
+                const blob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
+                const outName = file.name.replace(/\.[^.]+$/, '.jpg');
+                return new File([blob], outName, { type: 'image/jpeg' });
+            } catch (_) {
+                // El navegador no pudo decodificar HEIC — devolvemos el original
+                // y el servidor (sharp con libheif) se encargará.
                 return file;
             }
+        };
 
-            const dataUrl = await readFileAsDataURL(file);
-            const img = await loadImage(dataUrl);
+        /**
+         * Obtiene un Data-URL apto para mostrar en <img>, independientemente
+         * del formato. Para HEIC intenta convertir primero.
+         */
+        const obtenerPreviewUrl = async file => {
+            if (esHEIC(file)) {
+                try {
+                    const convertido = await heicToJpeg(file);
+                    if (convertido !== file) return URL.createObjectURL(convertido);
+                } catch (_) { /* fallback a ícono */ }
+                // Ícono genérico si no se pudo convertir
+                return null;
+            }
+            return URL.createObjectURL(file);
+        };
 
-            let quality = 0.92;
+        const compressImageFile = async (file, maxSize = MAX_IMAGE_SIZE) => {
+            // Convertir HEIC → JPEG primero
+            let f = esHEIC(file) ? await heicToJpeg(file) : file;
+
+            if (!f.type.startsWith('image/') || f.size <= maxSize) return f;
+
+            const dataUrl = await readFileAsDataURL(f);
+            const img     = await loadImage(dataUrl);
+
+            let quality    = 0.92;
             const minQuality = 0.25;
-            let width = img.naturalWidth;
-            let height = img.naturalHeight;
-            let scale = 1;
-            let blob = null;
-            let outputType = file.type;
+            let scale      = 1;
+            let blob       = null;
+            let outputType = f.type;
 
             while (true) {
                 const canvas = document.createElement('canvas');
-                canvas.width = Math.max(1, Math.floor(width * scale));
-                canvas.height = Math.max(1, Math.floor(height * scale));
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.width  = Math.max(1, Math.floor(img.naturalWidth  * scale));
+                canvas.height = Math.max(1, Math.floor(img.naturalHeight * scale));
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                 blob = await canvasToBlob(canvas, outputType, quality);
 
-                if (blob.size <= maxSize) {
-                    break;
-                }
+                if (blob.size <= maxSize) break;
 
-                if (quality > minQuality) {
-                    quality = Math.max(minQuality, quality - 0.12);
-                    continue;
-                }
-
-                if (scale > 0.4) {
-                    scale *= 0.85;
-                    continue;
-                }
-
-                if (outputType !== 'image/jpeg') {
-                    outputType = 'image/jpeg';
-                    quality = 0.75;
-                    continue;
-                }
-
+                if (quality > minQuality)    { quality = Math.max(minQuality, quality - 0.12); continue; }
+                if (scale > 0.4)             { scale *= 0.85; continue; }
+                if (outputType !== 'image/jpeg') { outputType = 'image/jpeg'; quality = 0.75; continue; }
                 break;
             }
 
-            let outputName = file.name;
+            let outputName = f.name;
             if (outputType === 'image/jpeg' && !/\.jpe?g$/i.test(outputName)) {
                 outputName = outputName.replace(/\.[^.]+$/, '.jpg');
             }
-
             return new File([blob], outputName, { type: outputType });
         };
 
@@ -420,13 +465,10 @@
 
             for (let i = 0; i < archivos.length; i++) {
                 const archivo = archivos[i];
-                if (archivo.size > MAX_IMAGE_SIZE) {
-                    const comprimido = await compressImageFile(archivo);
-                    archivosParaSubir.push(comprimido);
-                    comprimidas += comprimido.size < archivo.size ? 1 : 0;
-                } else {
-                    archivosParaSubir.push(archivo);
-                }
+                // Siempre procesar: convierte HEIC→JPEG y comprime si es necesario
+                const procesado = await compressImageFile(archivo);
+                archivosParaSubir.push(procesado);
+                if (procesado.size < archivo.size) comprimidas++;
             }
 
             /*
