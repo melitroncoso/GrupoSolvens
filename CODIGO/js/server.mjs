@@ -217,6 +217,50 @@ app.post('/api/agregar-sucursal', async (req, res, next) => {
     }
 });
 
+
+// Clientes vinculados a una sucursal específica
+app.get('/api/clientes-por-sucursal', async (req, res, next) => {
+    const { id_sucursal } = req.query;
+    if (!id_sucursal) return res.status(400).json({ error: 'Falta id_sucursal' });
+    try {
+        const result = await query(
+            `SELECT u.id AS "ID", u.nombre AS "Nombre"
+             FROM abastece a
+             JOIN usuario u ON a.id_cliente = u.id
+             WHERE a.id_sucursal = $1
+             ORDER BY u.nombre`,
+            [id_sucursal]
+        );
+        res.json(result.rows);
+    } catch (e) { next(e); }
+});
+
+// Actualizar clientes vinculados a una sucursal
+app.put('/api/actualizar-clientes-sucursal', async (req, res, next) => {
+    const { id_sucursal, clientesIds } = req.body;
+    if (!id_sucursal) return res.status(400).json({ error: 'Falta id_sucursal' });
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        await client.query('DELETE FROM abastece WHERE id_sucursal = $1', [id_sucursal]);
+        if (Array.isArray(clientesIds) && clientesIds.length > 0) {
+            for (const idCliente of clientesIds) {
+                await client.query(
+                    'INSERT INTO abastece (id_cliente, id_sucursal) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+                    [idCliente, id_sucursal]
+                );
+            }
+        }
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        next(e);
+    } finally {
+        client.release();
+    }
+});
+
 app.delete('/api/eliminar-sucursal/:id', async (req, res, next) => {
     try {
         await query('DELETE FROM sucursal WHERE id = $1', [req.params.id]);
@@ -857,13 +901,13 @@ app.get('/api/imagenes-supervisor', async (req, res, next) => {
         );
         if (supervisa.rows.length === 0) return res.json([]);
 
-        // Construir condiciones dinámicas
+        // Construir condiciones dinámicas (params sin id_supervisor — ya se usó arriba)
         const conditions = supervisa.rows.map((r, i) => {
-            const pz = i * 2 + 2;
-            const pc = i * 2 + 3;
+            const pz = i * 2 + 1;
+            const pc = i * 2 + 2;
             return `(sz.id_zona = $${pz} AND v.id_cliente = $${pc})`;
         });
-        const params = [id_supervisor];
+        const params = [];
         supervisa.rows.forEach(r => { params.push(r.id_zona); params.push(r.id_cliente); });
 
         const sql = `

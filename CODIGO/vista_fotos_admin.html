@@ -184,6 +184,7 @@
         let filteredVisitas = [];
         let visitaIndex = 0;
         let currentImg = 0;
+        const rotaciones = {}; // imgId -> grados, persiste entre navegaciones
         let currentLightboxImgId = null;
 
         async function cargarVisitasAdmin() {
@@ -218,7 +219,7 @@
                 <div class="foto-card" onclick="openLightbox(${i})">
                     <span class="status-pill status-${estClass}">${est}</span>
                     <div class="foto-wrapper">
-                        <img src="${img.ruta}" alt="Foto ${i + 1}" data-id="${img.id}" data-rotation="0" class="img-preview">
+                        <img src="${img.ruta}" alt="Foto ${i + 1}" data-id="${img.id}" data-rotation="${rotaciones[img.id] || 0}" class="img-preview" style="transform: rotate(${rotaciones[img.id] || 0}deg) ${((rotaciones[img.id] || 0) % 180 !== 0) ? 'scale(0.8)' : ''}">
                     </div>
                     <button class="btn-rotar-gallery" onclick="rotarImagenGaleria(this, event)" title="Rotar vista">
                         <i class="fas fa-sync-alt"></i>
@@ -260,6 +261,7 @@
             let rot = (parseInt(img.getAttribute('data-rotation')) + 90) % 360;
             img.setAttribute('data-rotation', rot);
             img.style.transform = `rotate(${rot}deg) ${(rot % 180 !== 0) ? 'scale(0.8)' : ''}`;
+            if (img.dataset.id) rotaciones[img.dataset.id] = rot;
         }
 
         function openLightbox(index) {
@@ -341,6 +343,7 @@
             e.stopPropagation();
             let rot = (parseInt(lbImg.getAttribute('data-rotation') || 0) + 90) % 360;
             lbImg.setAttribute('data-rotation', rot);
+            if (currentLightboxImgId) rotaciones[currentLightboxImgId] = rot;
             const scale = (rot % 180 !== 0) ? 0.75 : 1;
             lbImg.style.transform = `rotate(${rot}deg) scale(${scale})`;
 

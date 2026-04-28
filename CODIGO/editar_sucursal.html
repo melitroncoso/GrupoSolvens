@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo Solvens - Editar Sucursal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/formulario.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <a href="Admin_gestion_sucursal.html" class="btn-volver">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+            </svg>
+        </a>
+    </div>
+    <div class="header-center">
+        <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
+    </div>
+    <div class="header-right">
+        <a href="login.html" class="btn-salir">Cerrar Sesión</a>
+    </div>
+</header>
+
+<main class="contenido">
+    <h1>Editar <span>Sucursal</span></h1>
+    <p class="subtitulo">Buscá una sucursal para modificar sus clientes vinculados</p>
+
+    <div class="formulario">
+
+        <!-- PASO 1: Buscar por cadena -->
+        <div class="fila">
+            <div class="campo">
+                <select id="select-cadena">
+                    <option value="" disabled selected>Seleccione una cadena...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PASO 2: Seleccionar sucursal -->
+        <div class="fila" id="fila-sucursal" style="display:none;">
+            <div class="campo">
+                <select id="select-sucursal">
+                    <option value="" disabled selected>Seleccione una sucursal...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PASO 3: Editar clientes vinculados -->
+        <div id="panel-edicion" style="display:none;">
+            <div class="panel-edicion">
+                <h3 style="color:#aaa;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">
+                    Clientes vinculados a esta sucursal
+                </h3>
+
+                <div id="lista-clientes-check" class="lista-sucursales" style="max-height:240px;">
+                    <p style="color:#666;padding:8px;">Cargando clientes...</p>
+                </div>
+
+                <p id="contador-clientes" class="contador-sucursales">Clientes seleccionados: 0</p>
+
+                <button id="btn-guardar" class="btn-guardar-verde" style="margin-top:16px;">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const URL_BASE = '/api';
+    let clientesSeleccionados = new Set();
+    let sucursalActual = null;
+
+    function mostrarToast(mensaje, tipo = 'exito') {
+        const t = document.getElementById('toast');
+        t.textContent = mensaje;
+        t.className = 'toast ' + tipo;
+        t.classList.add('visible');
+        setTimeout(() => t.classList.remove('visible'), 3500);
+    }
+
+    // Cargar cadenas
+    async function iniciar() {
+        try {
+            const res = await fetch(`${URL_BASE}/cadenas`);
+            const cadenas = await res.json();
+            const sel = document.getElementById('select-cadena');
+            sel.innerHTML = '<option value="" disabled selected>Seleccione una cadena...</option>';
+            cadenas.forEach(c => sel.innerHTML += `<option value="${c.ID}">${c.Nombre}</option>`);
+        } catch {
+            mostrarToast('Error al cargar cadenas.', 'error');
+        }
+    }
+
+    // Al seleccionar cadena → cargar sucursales
+    document.getElementById('select-cadena').addEventListener('change', async function () {
+        const idCadena = this.value;
+        const filaSuc = document.getElementById('fila-sucursal');
+        const panel = document.getElementById('panel-edicion');
+        panel.style.display = 'none';
+
+        try {
+            const res = await fetch(`${URL_BASE}/buscar-sucursales?id_cadena=${idCadena}`);
+            const sucursales = await res.json();
+            const sel = document.getElementById('select-sucursal');
+            sel.innerHTML = '<option value="" disabled selected>Seleccione una sucursal...</option>';
+            sucursales.forEach(s => {
+                const altura = s.Altura ? ` ${s.Altura}` : '';
+                sel.innerHTML += `<option value="${s.ID}">${s.Localidad} — ${s.Calle}${altura}</option>`;
+            });
+            filaSuc.style.display = sucursales.length ? 'flex' : 'none';
+        } catch {
+            mostrarToast('Error al cargar sucursales.', 'error');
+        }
+    });
+
+    // Al seleccionar sucursal → cargar clientes y marcar los que ya tiene
+    document.getElementById('select-sucursal').addEventListener('change', async function () {
+        sucursalActual = this.value;
+        const panel = document.getElementById('panel-edicion');
+        const lista = document.getElementById('lista-clientes-check');
+        panel.style.display = 'none';
+        lista.innerHTML = '<p style="color:#666;padding:8px;">Cargando...</p>';
+        clientesSeleccionados.clear();
+
+        try {
+            // Clientes actuales de esta sucursal
+            const resActuales = await fetch(`${URL_BASE}/mis-sucursales?id_sucursal=${sucursalActual}`);
+            // mis-sucursales devuelve por cliente — usamos otro endpoint
+            // Obtenemos todos los clientes activos
+            const [resClientes, resVinculados] = await Promise.all([
+                fetch(`${URL_BASE}/clientes-activos`),
+                fetch(`${URL_BASE}/clientes-por-sucursal?id_sucursal=${sucursalActual}`)
+            ]);
+            const clientes = await resClientes.json();
+            const vinculados = await resVinculados.json();
+            const vinculadosIds = new Set(vinculados.map(v => String(v.ID)));
+
+            lista.innerHTML = '';
+            clientes.forEach(cl => {
+                const checked = vinculadosIds.has(String(cl.ID));
+                if (checked) clientesSeleccionados.add(String(cl.ID));
+                const label = document.createElement('label');
+                label.className = 'sucursal-item';
+                label.innerHTML = `
+                    <input type="checkbox" value="${cl.ID}" ${checked ? 'checked' : ''} onchange="toggleCliente(this)">
+                    <span class="sucursal-texto">${cl.Nombre}</span>
+                `;
+                lista.appendChild(label);
+            });
+
+            actualizarContador();
+            panel.style.display = 'block';
+        } catch (err) {
+            console.error(err);
+            mostrarToast('Error al cargar clientes.', 'error');
+        }
+    });
+
+    window.toggleCliente = (cb) => {
+        if (cb.checked) clientesSeleccionados.add(cb.value);
+        else clientesSeleccionados.delete(cb.value);
+        actualizarContador();
+    };
+
+    function actualizarContador() {
+        document.getElementById('contador-clientes').textContent =
+            `Clientes seleccionados: ${clientesSeleccionados.size}`;
+    }
+
+    document.getElementById('btn-guardar').onclick = async () => {
+        if (!sucursalActual) return;
+        try {
+            const res = await fetch(`${URL_BASE}/actualizar-clientes-sucursal`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_sucursal: sucursalActual,
+                    clientesIds: Array.from(clientesSeleccionados)
+                })
+            });
+            if (res.ok) mostrarToast('✅ Vínculos actualizados correctamente.', 'exito');
+            else mostrarToast('❌ Error al guardar.', 'error');
+        } catch {
+            mostrarToast('Error de conexión.', 'error');
+        }
+    };
+
+    iniciar();
+</script>
+
+</body>
+</html>
