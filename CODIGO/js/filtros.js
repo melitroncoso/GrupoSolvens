@@ -1,35 +1,44 @@
-// ── Referencias ──
 const btnToggleSidebar = document.getElementById('btnToggleSidebar');
 const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
-const sidebarFiltros   = document.getElementById('sidebarFiltros');
+const sidebarFiltros = document.getElementById('sidebarFiltros');
 
-// Abre el sidebar
 btnToggleSidebar.addEventListener('click', () => {
     sidebarFiltros.classList.add('activo');
+    btnToggleSidebar.classList.add('oculto');
 });
 
-// Cierra el sidebar con la X
 btnCerrarSidebar.addEventListener('click', () => {
     sidebarFiltros.classList.remove('activo');
+    btnToggleSidebar.classList.remove('oculto');
 });
 
-// Cierra el sidebar al hacer clic fuera (sobre el overlay oscuro de fondo)
-document.addEventListener('click', (e) => {
-    if (
-        sidebarFiltros.classList.contains('activo') &&
-        !sidebarFiltros.contains(e.target) &&
-        e.target !== btnToggleSidebar &&
-        !btnToggleSidebar.contains(e.target)
-    ) {
-        sidebarFiltros.classList.remove('activo');
-    }
+const filtrosHeaders = document.querySelectorAll('.filtro-header');
+
+filtrosHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+        const contenido = header.nextElementSibling;
+        const icono = header.querySelector('.icono-toggle');
+        const grupoFiltro = header.parentElement;
+
+        grupoFiltro.classList.toggle('colapsado');
+        
+        if (grupoFiltro.classList.contains('colapsado')) {
+            contenido.style.maxHeight = '0';
+            icono.style.transform = 'rotate(-90deg)';
+        } else {
+            contenido.style.maxHeight = contenido.scrollHeight + 'px';
+            icono.style.transform = 'rotate(0deg)';
+        }
+    });
 });
 
-// Cierra con tecla Escape
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        sidebarFiltros.classList.remove('activo');
-        document.getElementById('sfDropdown').style.display = 'none';
-        document.getElementById('sfOverlay').classList.remove('activo');
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const gruposFiltro = document.querySelectorAll('.grupo-filtro');
+    gruposFiltro.forEach(grupo => {
+        grupo.classList.add('colapsado');
+        const contenido = grupo.querySelector('.filtro-contenido');
+        const icono = grupo.querySelector('.icono-toggle');
+        contenido.style.maxHeight = '0';
+        icono.style.transform = 'rotate(-90deg)';
+    });
 });
