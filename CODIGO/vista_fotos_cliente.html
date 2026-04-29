@@ -528,15 +528,11 @@
                 slidePortada.addText(`Exportado el: ${new Date().toLocaleDateString('es-AR')}`, { x: 0, y: 4.8, w: '100%', h: 0.4, fontSize: 12, color: '666666', align: 'center' });
 
                 for (const v of ultimasVisitas) {
+                    // Hasta 5 fotos en una sola slide.
+                    // Si hubiera más de 5 (por futuras ampliaciones), se corta en grupos de 5.
                     let imageChunks = [];
-                    if (v.imagenes.length <= 3) {
-                        imageChunks.push(v.imagenes);
-                    } else if (v.imagenes.length === 4) {
-                        imageChunks.push(v.imagenes.slice(0, 2), v.imagenes.slice(2, 4));
-                    } else if (v.imagenes.length === 5) {
-                        imageChunks.push(v.imagenes.slice(0, 3), v.imagenes.slice(3, 5));
-                    } else {
-                        for (let k = 0; k < v.imagenes.length; k += 3) imageChunks.push(v.imagenes.slice(k, k + 3));
+                    for (let k = 0; k < v.imagenes.length; k += 5) {
+                        imageChunks.push(v.imagenes.slice(k, k + 5));
                     }
 
                     for (let cIdx = 0; cIdx < imageChunks.length; cIdx++) {
@@ -554,17 +550,62 @@
                         slide.addText(`${v.cadena} | ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, { x: 1.5, y: 0.05, w: 8.3, h: 0.5, fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true });
                         slide.addText(`${v.sucursal} - ${v.localidad}`, { x: 0.5, y: 0.7, w: 9, h: 0.4, fontSize: 20, color: 'DC2626', bold: true });
 
-                        const areaY = 1.3, areaW = 9, areaH = 4.1;
-                        const gutter = 0.3;
-                        let cW = (areaW - (count - 1) * gutter) / count;
-                        let startX = 0.5;
-                        if (count === 1) { cW = 5; startX = 0.5 + (areaW - cW) / 2; }
-                        else if (count === 2) { cW = 4; startX = 0.5 + (areaW - (cW * 2 + gutter)) / 2; }
+                        // Layout dinámico según cantidad de fotos:
+                        // 1 foto  → centrada grande
+                        // 2 fotos → 2 columnas centradas
+                        // 3 fotos → 3 columnas
+                        // 4 fotos → fila 2+2 (dos filas)
+                        // 5 fotos → fila 3 arriba + 2 abajo centradas
+                        const areaX = 0.5, areaY = 1.25, areaW = 9;
 
-                        for (let i = 0; i < count; i++) {
-                            const imgB64 = await imgUrlToBase64(imgs[i].ruta);
-                            if (imgB64) {
-                                slide.addImage({ data: imgB64, x: startX + i * (cW + gutter), y: areaY, sizing: { type: 'contain', w: cW, h: areaH } });
+                        if (count <= 3) {
+                            // Una sola fila
+                            const areaH = 4.2;
+                            const gutter = 0.25;
+                            let cW = (areaW - (count - 1) * gutter) / count;
+                            let startX = areaX;
+                            if (count === 1) { cW = 5; startX = areaX + (areaW - cW) / 2; }
+                            else if (count === 2) { cW = 4; startX = areaX + (areaW - (cW * 2 + gutter)) / 2; }
+
+                            for (let i = 0; i < count; i++) {
+                                const imgB64 = await imgUrlToBase64(imgs[i].ruta);
+                                if (imgB64) slide.addImage({ data: imgB64, x: startX + i * (cW + gutter), y: areaY, sizing: { type: 'contain', w: cW, h: areaH } });
+                            }
+
+                        } else if (count === 4) {
+                            // 2 filas × 2 columnas
+                            const cW = 4.3, cH = 1.95, gX = 0.4, gY = 0.25;
+                            const startX = areaX + (areaW - (cW * 2 + gX)) / 2;
+                            const rows = [[0,1],[2,3]];
+                            rows.forEach((row, rIdx) => {
+                                row.forEach(async (imgIdx, cIdx2) => {
+                                    const imgB64 = await imgUrlToBase64(imgs[imgIdx].ruta);
+                                    if (imgB64) slide.addImage({ data: imgB64, x: startX + cIdx2 * (cW + gX), y: areaY + rIdx * (cH + gY), sizing: { type: 'contain', w: cW, h: cH } });
+                                });
+                            });
+                            // Esperar todas las promesas
+                            await Promise.all([0,1,2,3].map(async (imgIdx) => {
+                                const rIdx  = Math.floor(imgIdx / 2);
+                                const cIdx2 = imgIdx % 2;
+                                const imgB64 = await imgUrlToBase64(imgs[imgIdx].ruta);
+                                if (imgB64) slide.addImage({ data: imgB64, x: startX + cIdx2 * (cW + gX), y: areaY + rIdx * (cH + gY), sizing: { type: 'contain', w: cW, h: cH } });
+                            }));
+
+                        } else {
+                            // 5 fotos → fila de 3 arriba + fila de 2 abajo centrada
+                            const cH = 1.85, gX = 0.2, gY = 0.25;
+                            // Fila 1: 3 fotos
+                            const cW3 = (areaW - 2 * gX) / 3;
+                            for (let i = 0; i < 3; i++) {
+                                const imgB64 = await imgUrlToBase64(imgs[i].ruta);
+                                if (imgB64) slide.addImage({ data: imgB64, x: areaX + i * (cW3 + gX), y: areaY, sizing: { type: 'contain', w: cW3, h: cH } });
+                            }
+                            // Fila 2: 2 fotos centradas
+                            const cW2 = (areaW - gX) / 2;
+                            const startX2 = areaX + (areaW - (cW2 * 2 + gX)) / 2;
+                            for (let i = 0; i < 2; i++) {
+                                const imgB64 = await imgUrlToBase64(imgs[3 + i].ruta);
+                                if (imgB64) slide.addImage({ data: imgB64, x: startX2 + i * (cW2 + gX), y: areaY + cH + gY, sizing: { type: 'contain', w: cW2, h: cH } });
                             }
                         }
                     }
