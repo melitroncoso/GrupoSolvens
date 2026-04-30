@@ -421,6 +421,35 @@
             renderVisita(visitaIndex);
         };
 
+        document.getElementById('lightbox-download').onclick = async () => {
+            const src = lbImg.src;
+            if (!src) return;
+            
+            const btn = document.getElementById('lightbox-download');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            
+            try {
+                const base64 = await imgUrlToBase64(src);
+                if (base64) {
+                    const link = document.createElement('a');
+                    link.href = base64;
+                    const timestamp = new Date().getTime();
+                    link.download = `Evidencia_${timestamp}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch (err) {
+                console.error('Error al descargar:', err);
+                mostrarToast('Error al descargar la imagen.', 'error');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        };
+
         function populateFilters() {
             const makeOptions = (arr) => [...new Set(arr)].filter(Boolean).sort((a,b) => a.localeCompare(b, 'es'));
             const llenar = (id, items, prefix) => {

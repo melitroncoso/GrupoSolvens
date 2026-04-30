@@ -405,12 +405,30 @@
         lightbox.onclick = (e) => { if (e.target === lightbox) closeLightbox(); };
 
         if (lbDownload) {
-            lbDownload.onclick = (e) => {
+            lbDownload.onclick = async (e) => {
                 e.stopPropagation();
-                const a = document.createElement('a');
-                a.href = lbImg.src;
-                a.download = "foto_solvens.jpg";
-                a.click();
+                const src = lbImg.src;
+                if (!src) return;
+
+                const originalHtml = lbDownload.innerHTML;
+                lbDownload.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                
+                try {
+                    const base64 = await imgUrlToBase64(src);
+                    if (base64) {
+                        const link = document.createElement('a');
+                        link.href = base64;
+                        const timestamp = new Date().getTime();
+                        link.download = `Evidencia_${timestamp}.jpg`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                } catch (err) {
+                    console.error('Error al descargar:', err);
+                } finally {
+                    lbDownload.innerHTML = originalHtml;
+                }
             };
         }
 
