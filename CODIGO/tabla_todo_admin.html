@@ -23,7 +23,7 @@
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
             </a>
-            <button class="btn-toggle-sidebar btn-toggle-fotos" id="btnToggleSidebar">
+            <button class="btn-toggle-sidebar" id="btnToggleSidebar">
                 <i class="fas fa-filter"></i>
                 <span>Filtros</span>
             </button>
@@ -96,19 +96,6 @@
 
             <div class="grupo-filtro">
                 <div class="filtro-header">
-                    <label class="label-filtro">Región</label>
-                    <i class="fas fa-chevron-down icono-toggle"></i>
-                </div>
-                <div class="filtro-contenido">
-                    <p class="descripcion-filtro">Seleccione la región (zona):</p>
-                    <select class="select-filtro" id="filtroRegion">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grupo-filtro">
-                <div class="filtro-header">
                     <label class="label-filtro">Clientes</label>
                     <i class="fas fa-chevron-down icono-toggle"></i>
                 </div>
@@ -121,8 +108,8 @@
             </div>
 
             <div class="botones-filtro">
-                <button class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar Filtros</button>
-                <button class="btn-limpiar-filtros" id="btnLimpiarFiltros">Limpiar Filtros</button>
+                <button class="btn-aplicar-filtros" id="btnAplicar">Aplicar Filtros</button>
+                <button class="btn-limpiar-filtros" id="btnLimpiar">Limpiar Filtros</button>
             </div>
         </aside>
 
@@ -169,7 +156,6 @@
     </div>
 
     <div id="toast" class="toast"></div>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 
     <script>
@@ -185,21 +171,17 @@
 
         btnToggle.addEventListener('click', () => {
             sidebar.classList.add('activo');
-            btnToggle.classList.add('oculto');
-            document.getElementById('sidebarOverlay').classList.add('activo');
+            btnToggle.classList.add('oculto'); // Desaparece al abrir
         });
 
         document.getElementById('btnCerrarSidebar').addEventListener('click', () => {
             sidebar.classList.remove('activo');
-            btnToggle.classList.remove('oculto');
-            document.getElementById('sidebarOverlay').classList.remove('activo');
+            btnToggle.classList.remove('oculto'); // Reaparece al cerrar
         });
 
-        document.getElementById('sidebarOverlay').addEventListener('click', () => {
-            sidebar.classList.remove('activo');
-            btnToggle.classList.remove('oculto');
-            document.getElementById('sidebarOverlay').classList.remove('activo');
-        });
+        // ══════════════════════════════════════════════════════════════════════════════
+        // GRUPOS COLAPSABLES
+        // ══════════════════════════════════════════════════════════════════════════════
 
         document.querySelectorAll('.filtro-header').forEach(header => {
             header.addEventListener('click', () => {
@@ -241,19 +223,11 @@
 
                 poblarSelect('filtroCadena', data.cadenas || []);
                 poblarSelect('filtroSucursal', data.sucursales || []);
-                poblarSelect('filtroRegion', data.regiones || []);
 
                 // Cargar clientes
                 const resClientes = await fetch(`${API_BASE}/clientes-activos`);
                 const clientes = await resClientes.json();
                 poblarSelect('filtroCliente', clientes || []);
-
-                // Inicializar grupos colapsados
-                document.querySelectorAll('.grupo-filtro').forEach(g => {
-                    g.classList.add('colapsado');
-                    g.querySelector('.filtro-contenido').style.maxHeight = '0';
-                    g.querySelector('.icono-toggle').style.transform = 'rotate(-90deg)';
-                });
 
             } catch (e) {
                 console.error('Error cargando opciones de filtros:', e);
@@ -282,7 +256,6 @@
             if (v('fechaHasta')) p.set('fecha_hasta', v('fechaHasta'));
             if (v('filtroCadena')) p.set('id_cadena', v('filtroCadena'));
             if (v('filtroSucursal')) p.set('id_sucursal', v('filtroSucursal'));
-            if (v('filtroRegion')) p.set('id_region', v('filtroRegion'));
             if (v('filtroCliente')) p.set('id_cliente', v('filtroCliente'));
 
             return p;
@@ -380,6 +353,7 @@
             fecha_hasta: 'Hasta',
             id_cadena: 'Cadena',
             id_sucursal: 'Boca',
+            id_canal: 'Canal',
             id_region: 'Región',
             id_cliente: 'Cliente'
         };
@@ -398,10 +372,10 @@
         // BOTONES DE ACCIÓN Y EXPORTACIÓN
         // ══════════════════════════════════════════════════════════════════════════════
 
-        document.getElementById('btnAplicarFiltros').addEventListener('click', cargarDatos);
+        document.getElementById('btnAplicar').addEventListener('click', cargarDatos);
 
-        document.getElementById('btnLimpiarFiltros').addEventListener('click', () => {
-            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroRegion', 'filtroCliente']
+        document.getElementById('btnLimpiar').addEventListener('click', () => {
+            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroCliente']
                 .forEach(id => document.getElementById(id).value = '');
             cargarDatos();
         });

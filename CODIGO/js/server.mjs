@@ -136,14 +136,14 @@ function buildZonaClause(zonasIds, startIdx) {
 
 app.get('/api/tipos-cadena', async (req, res, next) => {
     try {
-        const result = await query('SELECT id AS "ID", tipo AS "Tipo" FROM tipo_cadena');
+        const result = await query('SELECT id AS "ID", tipo AS "Tipo" FROM tipo_cadena ORDER BY tipo');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
 
 app.get('/api/cadenas', async (req, res, next) => {
     try {
-        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM cadena');
+        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM cadena ORDER BY nombre');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -180,7 +180,7 @@ app.delete('/api/eliminar-cadena/:id', async (req, res, next) => {
 
 app.get('/api/subzonas', async (req, res, next) => {
     try {
-        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM subzona');
+        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM subzona ORDER BY nombre');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -188,7 +188,7 @@ app.get('/api/subzonas', async (req, res, next) => {
 app.get('/api/buscar-sucursales', async (req, res, next) => {
     const { id_cadena, id_subzona } = req.query;
     try {
-        let sql = 'SELECT id AS "ID", calle AS "Calle", altura AS "Altura", localidad AS "Localidad" FROM sucursal WHERE id_cadena = $1';
+        let sql = 'SELECT id AS "ID", calle AS "Calle", altura AS "Altura", localidad AS "Localidad" FROM sucursal WHERE id_cadena = $1 ORDER BY localidad, calle';
         const params = [id_cadena];
 
         if (id_subzona && id_subzona !== 'undefined' && id_subzona !== 'null' && id_subzona !== '') {
@@ -299,7 +299,7 @@ app.delete('/api/eliminar-sucursal/:id', async (req, res, next) => {
 
 app.get('/api/tipos-usuario', async (req, res, next) => {
     try {
-        const result = await query('SELECT id, tipo FROM tipo_usuario');
+        const result = await query('SELECT id, tipo FROM tipo_usuario ORDER BY tipo');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -373,7 +373,7 @@ app.get('/api/usuarios', async (req, res, next) => {
     const { tipo } = req.query;
     try {
         const result = await query(
-            'SELECT id AS "ID", nombre AS "Nombre" FROM usuario WHERE id_tipo_usuario = $1', [tipo]
+            'SELECT id AS "ID", nombre AS "Nombre" FROM usuario WHERE id_tipo_usuario = $1 ORDER BY nombre', [tipo]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
@@ -385,7 +385,7 @@ app.get('/api/buscar-usuarios-eliminar', async (req, res, next) => {
         const result = await query(
             `SELECT u.id AS "ID", u.nombre AS "Nombre", u.usuario AS "Usuario", t.tipo AS "Tipo"
              FROM usuario u JOIN tipo_usuario t ON u.id_tipo_usuario = t.id
-             WHERE u.nombre ILIKE $1 OR u.usuario ILIKE $1`,
+             WHERE u.nombre ILIKE $1 OR u.usuario ILIKE $1 ORDER BY u.nombre`,
             [`%${q}%`]
         );
         res.json(result.rows);
@@ -486,7 +486,7 @@ app.post('/login', async (req, res, next) => {
 
 app.get('/api/categorias', async (req, res, next) => {
     try {
-        const result = await query('SELECT id AS "ID", categoria AS "Categoria" FROM categoria');
+        const result = await query('SELECT id AS "ID", categoria AS "Categoria" FROM categoria ORDER BY categoria');
         res.json(result.rows);
     } catch (e) { next(e); }
 });
@@ -495,7 +495,7 @@ app.get('/api/buscar-categorias', async (req, res, next) => {
     const { q } = req.query;
     try {
         const result = await query(
-            'SELECT id AS "ID", categoria AS "Categoria" FROM categoria WHERE categoria ILIKE $1', [`%${q}%`]
+            'SELECT id AS "ID", categoria AS "Categoria" FROM categoria WHERE categoria ILIKE $1 ORDER BY categoria', [`%${q}%`]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
@@ -542,7 +542,7 @@ app.get('/api/buscar-productos', async (req, res, next) => {
         const result = await query(
             `SELECT p.id AS "ID", p.descripcion AS "Descripcion", p.sku AS "SKU", u.nombre AS "Cliente"
              FROM producto p JOIN usuario u ON p.id_cliente = u.id
-             WHERE p.descripcion ILIKE $1 OR p.sku ILIKE $1`,
+             WHERE p.descripcion ILIKE $1 OR p.sku ILIKE $1 ORDER BY p.descripcion`,
             [`%${q}%`]
         );
         res.json(result.rows);
@@ -560,7 +560,7 @@ app.get('/api/productos-cliente', async (req, res, next) => {
     const { id_cliente } = req.query;
     try {
         const result = await query(
-            'SELECT id AS "ID", descripcion AS "Descripcion" FROM producto WHERE id_cliente = $1', [id_cliente]
+            'SELECT id AS "ID", descripcion AS "Descripcion" FROM producto WHERE id_cliente = $1 ORDER BY descripcion', [id_cliente]
         );
         res.json(result.rows);
     } catch (e) { next(e); }
@@ -585,7 +585,7 @@ app.get('/api/mis-sucursales', async (req, res, next) => {
                  FROM sucursal s
                  JOIN abastece a  ON s.id = a.id_sucursal
                  JOIN cadena ca   ON s.id_cadena = ca.id
-                 WHERE a.id_cliente = $1`,
+                 WHERE a.id_cliente = $1 ORDER BY ca.nombre, s.localidad, s.calle`,
                 [id_cliente]
             );
             return res.json(result.rows);
@@ -609,7 +609,8 @@ app.get('/api/mis-sucursales', async (req, res, next) => {
              JOIN subzona sz  ON s.id_subzona = sz.id
              JOIN cadena ca   ON s.id_cadena = ca.id
              WHERE a.id_cliente = $1
-             ${clause}`,
+             ${clause}
+             ORDER BY ca.nombre, s.localidad, s.calle`,
             [id_cliente, ...params]
         );
         res.json(result.rows);
@@ -1313,11 +1314,11 @@ app.get('/api/sucursales-lista', async (req, res, next) => {
 app.get('/api/filtros-opciones', async (req, res, next) => {
     try {
         const [cadenas, sucursales, canales, regiones, categorias] = await Promise.all([
-            query('SELECT id, nombre FROM cadena ORDER BY nombre'),
-            query(`SELECT id, calle || COALESCE(' ' || CAST(altura AS VARCHAR), ' S/N') AS nombre FROM sucursal ORDER BY calle`),
-            query('SELECT id, tipo AS nombre FROM tipo_cadena ORDER BY tipo'),
-            query('SELECT id, nombre FROM zona ORDER BY nombre'),
-            query('SELECT id, categoria AS nombre FROM categoria ORDER BY categoria'),
+            query('SELECT id AS "ID", nombre AS "Nombre" FROM cadena ORDER BY nombre'),
+            query(`SELECT id AS "ID", calle || COALESCE(' ' || CAST(altura AS VARCHAR), ' S/N') AS "Nombre" FROM sucursal ORDER BY calle`),
+            query('SELECT id AS "ID", tipo AS "Nombre" FROM tipo_cadena ORDER BY tipo'),
+            query('SELECT id AS "ID", nombre AS "Nombre" FROM zona ORDER BY nombre'),
+            query('SELECT id AS "ID", categoria AS "Nombre" FROM categoria ORDER BY categoria'),
         ]);
         res.json({
             cadenas: cadenas.rows,

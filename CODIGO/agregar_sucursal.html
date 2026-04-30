@@ -78,6 +78,17 @@
 
         </div>
 
+        <!-- CLIENTES QUE ABASTECE -->
+        <div class="fila" style="flex-direction:column;gap:8px;">
+            <label style="color:#aaa;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">
+                Clientes que abastece esta sucursal (opcional)
+            </label>
+            <div id="lista-clientes-check" class="lista-sucursales" style="max-height:200px;">
+                <p style="color:#666;padding:8px;">Cargando clientes...</p>
+            </div>
+            <p id="contador-clientes" style="font-size:12px;color:#dc2626;font-weight:600;">Clientes seleccionados: 0</p>
+        </div>
+
         <button type="submit">Guardar Sucursal</button>
     </form>
 </main>
@@ -178,7 +189,8 @@
             altura: altura.value,
             localidad: localidad.value.trim(),
             id_subzona: subzona.value,
-            id_cadena: cadena.value
+            id_cadena: cadena.value,
+            clientesIds: Array.from(clientesSeleccionados)
         };
 
         try {
@@ -193,6 +205,9 @@
             if (response.ok) {
                 mostrarToast(result.message, "exito");
                 form.reset();
+                clientesSeleccionados.clear();
+                document.querySelectorAll('#lista-clientes-check input[type=checkbox]').forEach(cb => cb.checked = false);
+                document.getElementById('contador-clientes').textContent = 'Clientes seleccionados: 0';
             } else {
                 mostrarToast(result.message, "aviso");
             }
@@ -207,6 +222,40 @@
         i.addEventListener('input', limpiarErrores);
         i.addEventListener('change', limpiarErrores);
     });
+
+    // Checklist de clientes
+    let clientesSeleccionados = new Set();
+
+    async function cargarClientes() {
+        try {
+            const res = await fetch(`${URL_BASE}/clientes-activos`);
+            const clientes = await res.json();
+            clientes.sort((a, b) => a.Nombre.localeCompare(b.Nombre, 'es'));
+            const lista = document.getElementById('lista-clientes-check');
+            lista.innerHTML = '';
+            clientes.forEach(cl => {
+                const label = document.createElement('label');
+                label.className = 'sucursal-item';
+                label.innerHTML = `
+                    <input type="checkbox" value="${cl.ID}" onchange="toggleCliente(this)">
+                    <span class="sucursal-texto">${cl.Nombre}</span>
+                `;
+                lista.appendChild(label);
+            });
+        } catch {
+            document.getElementById('lista-clientes-check').innerHTML =
+                '<p style="color:#dc2626;padding:8px;">Error al cargar clientes.</p>';
+        }
+    }
+
+    window.toggleCliente = (cb) => {
+        if (cb.checked) clientesSeleccionados.add(cb.value);
+        else clientesSeleccionados.delete(cb.value);
+        document.getElementById('contador-clientes').textContent =
+            `Clientes seleccionados: ${clientesSeleccionados.size}`;
+    };
+
+    cargarClientes();
 </script>
 
 <div class="toast" id="toast"></div>

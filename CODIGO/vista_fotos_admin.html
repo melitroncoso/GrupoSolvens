@@ -117,6 +117,35 @@
                     </div>
                 </div>
 
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Repositor</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione el repositor:</p>
+                        <select class="select-filtro" id="filtroRepositor">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Estado de imagen</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Filtre por estado:</p>
+                        <select class="select-filtro" id="filtroEstado">
+                            <option value="">Todos</option>
+                            <option value="Aprobado">Aprobado</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Rechazado">Rechazado</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="botones-filtro">
                     <button class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar Filtros</button>
                     <button class="btn-limpiar-filtros" id="btnLimpiarFiltros">Limpiar Filtros</button>
@@ -302,6 +331,7 @@
                     <span><i class="fas fa-building"></i> <strong>${v.cadena}</strong></span>
                     <span><i class="fas fa-map-marker-alt"></i> ${v.sucursal}</span>
                     <span><i class="fas fa-calendar-alt"></i> ${new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })}</span>
+                    <span><i class="fas fa-user"></i> ${v.repositor || '-'}</span>
                     <span class="status-badge-lb status-${estClass}">${estado}</span>
                 `;
             }
@@ -363,6 +393,33 @@
         document.getElementById('lightbox-close').onclick = () => lightbox.classList.remove('activo');
         lightbox.onclick = (e) => { if (e.target === lightbox) lightbox.classList.remove('activo'); };
 
+        document.getElementById('lightbox-download').onclick = async () => {
+            const src = lbImg.src;
+            if (!src) return;
+            const btn = document.getElementById('lightbox-download');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            try {
+                const base64 = await imgUrlToBase64(src);
+                if (base64) {
+                    const link = document.createElement('a');
+                    link.href = base64;
+                    const timestamp = new Date().getTime();
+                    link.download = `Evidencia_${timestamp}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch (err) {
+                console.error('Error al descargar:', err);
+                mostrarToast('Error al descargar la imagen.', 'error');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        };
+
         async function actualizarEstadoImagen(idImg, nuevoEstado, e) {
             if (e) e.stopPropagation();
             
@@ -421,35 +478,6 @@
             renderVisita(visitaIndex);
         };
 
-        document.getElementById('lightbox-download').onclick = async () => {
-            const src = lbImg.src;
-            if (!src) return;
-            
-            const btn = document.getElementById('lightbox-download');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-            
-            try {
-                const base64 = await imgUrlToBase64(src);
-                if (base64) {
-                    const link = document.createElement('a');
-                    link.href = base64;
-                    const timestamp = new Date().getTime();
-                    link.download = `Evidencia_${timestamp}.jpg`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }
-            } catch (err) {
-                console.error('Error al descargar:', err);
-                mostrarToast('Error al descargar la imagen.', 'error');
-            } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }
-        };
-
         function populateFilters() {
             const makeOptions = (arr) => [...new Set(arr)].filter(Boolean).sort((a,b) => a.localeCompare(b, 'es'));
             const llenar = (id, items, prefix) => {
@@ -461,6 +489,7 @@
             llenar('filtroCadena', makeOptions(visitasData.map(v => v.cadena)), 'Cadena (todas)');
             llenar('filtroSucursal', makeOptions(visitasData.map(v => v.sucursal)), 'Sucursal (todas)');
             llenar('filtroZona', makeOptions(visitasData.map(v => v.zona)), 'Zona (todas)');
+            llenar('filtroRepositor', makeOptions(visitasData.map(v => v.repositor)), 'Repositor (todos)');
         }
 
         function applyFilters() {
@@ -470,6 +499,8 @@
             const fCad = document.getElementById('filtroCadena').value;
             const fSuc = document.getElementById('filtroSucursal').value;
             const fZona = document.getElementById('filtroZona').value;
+            const fRepo = document.getElementById('filtroRepositor').value;
+            const fEstado = document.getElementById('filtroEstado').value;
 
             filteredVisitas = visitasData.filter(v => {
                 if (fDesde && new Date(v.fecha) < new Date(fDesde)) return false;
@@ -478,6 +509,9 @@
                 if (fCad && v.cadena !== fCad) return false;
                 if (fSuc && v.sucursal !== fSuc) return false;
                 if (fZona && v.zona !== fZona) return false;
+                if (fRepo && v.repositor !== fRepo) return false;
+                // Filtro por estado: mostrar visita si al menos una imagen coincide
+                if (fEstado && !v.imagenes.some(img => img.estado === fEstado)) return false;
                 return true;
             });
             visitaIndex = 0;
@@ -490,7 +524,7 @@
         }
 
         function clearFilters() {
-            ['fechaDesde', 'fechaHasta', 'filtroCliente', 'filtroCadena', 'filtroSucursal', 'filtroZona']
+            ['fechaDesde', 'fechaHasta', 'filtroCliente', 'filtroCadena', 'filtroSucursal', 'filtroZona', 'filtroRepositor', 'filtroEstado']
                 .forEach(id => document.getElementById(id).value = '');
             applyFilters();
         }

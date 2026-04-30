@@ -23,7 +23,7 @@
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
             </a>
-            <button class="btn-toggle-sidebar btn-toggle-fotos" id="btnToggleSidebar">
+            <button class="btn-toggle-sidebar" id="btnToggleSidebar">
                 <i class="fas fa-filter"></i>
                 <span>Filtros</span>
             </button>
@@ -124,8 +124,8 @@
             </div>
 
             <div class="botones-filtro">
-                <button class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar Filtros</button>
-                <button class="btn-limpiar-filtros" id="btnLimpiarFiltros">Limpiar Filtros</button>
+                <button class="btn-aplicar-filtros" id="btnAplicar">Aplicar Filtros</button>
+                <button class="btn-limpiar-filtros" id="btnLimpiar">Limpiar Filtros</button>
             </div>
         </aside>
 
@@ -171,7 +171,6 @@
     </div>
 
     <div id="toast"></div>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <script>
         const API_BASE = '/api';
@@ -195,19 +194,10 @@
         document.getElementById('btnToggleSidebar').addEventListener('click', () => {
             document.getElementById('sidebarFiltros').classList.add('activo');
             document.getElementById('btnToggleSidebar').classList.add('oculto');
-            document.getElementById('sidebarOverlay').classList.add('activo');
         });
-
         document.getElementById('btnCerrarSidebar').addEventListener('click', () => {
             document.getElementById('sidebarFiltros').classList.remove('activo');
             document.getElementById('btnToggleSidebar').classList.remove('oculto');
-            document.getElementById('sidebarOverlay').classList.remove('activo');
-        });
-
-        document.getElementById('sidebarOverlay').addEventListener('click', () => {
-            document.getElementById('sidebarFiltros').classList.remove('activo');
-            document.getElementById('btnToggleSidebar').classList.remove('oculto');
-            document.getElementById('sidebarOverlay').classList.remove('activo');
         });
 
         // Grupos colapsables
@@ -258,13 +248,6 @@
                 const resCli = await fetch(`${API_BASE}/clientes-activos`);
                 const clientes = await resCli.json();
                 poblarSelect('filtroCliente', clientes || []);
-
-                // Inicializar grupos colapsados
-                document.querySelectorAll('.grupo-filtro').forEach(g => {
-                    g.classList.add('colapsado');
-                    g.querySelector('.filtro-contenido').style.maxHeight = '0';
-                    g.querySelector('.icono-toggle').style.transform = 'rotate(-90deg)';
-                });
             } catch (e) {
                 console.error('Error cargando selectores de filtros:', e);
             }
@@ -456,6 +439,7 @@
             fecha_hasta: 'Hasta',
             id_cadena: 'Cadena',
             id_sucursal: 'Boca',
+            id_canal: 'Canal',
             id_region: 'Región',
             id_cliente: 'Cliente'
         };
@@ -474,8 +458,8 @@
         // BOTONES DE FILTROS
         // ══════════════════════════════════════════════════════════════════════════════
 
-        document.getElementById('btnAplicarFiltros').addEventListener('click', cargarDatos);
-        document.getElementById('btnLimpiarFiltros').addEventListener('click', () => {
+        document.getElementById('btnAplicar').addEventListener('click', cargarDatos);
+        document.getElementById('btnLimpiar').addEventListener('click', () => {
             ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroRegion', 'filtroCliente']
                 .forEach(id => document.getElementById(id).value = '');
             cargarDatos();

@@ -176,7 +176,7 @@
         let currentImg = 0;
 
         async function cargarVisitas() {
-            const idSupervisor = localStorage.getItem('id_usuario');
+            const idSupervisor = sessionStorage.getItem('id_usuario');
             if (!idSupervisor) { window.location.href = 'login.html'; return; }
 
             const res = await fetch(`${URL_BASE}/imagenes-supervisor?id_supervisor=${idSupervisor}`);
@@ -233,7 +233,7 @@
         }
 
         function populateFilters() {
-            const makeOptions = items => [...new Set(items)].filter(Boolean).map(x => `<option value="${x}">${x}</option>`).join('');
+            const makeOptions = items => [...new Set(items)].filter(Boolean).sort((a,b) => a.localeCompare(b,'es')).map(x => `<option value="${x}">${x}</option>`).join('');
             const llenar = (id, opciones, titulo) => {
                 document.getElementById(id).innerHTML = `<option value="">${titulo}</option>` + opciones;
             };
