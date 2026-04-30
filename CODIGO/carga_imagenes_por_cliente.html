@@ -73,12 +73,13 @@
                     <tr>
                         <th>Sucursal / Punto de Venta</th>
                         <th>Zona</th>
+                        <th>Repositor</th>
                         <th class="col-centrada">Imágenes Cargadas</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="3" class="estado-tabla-inicial">
+                        <td colspan="4" class="estado-tabla-inicial">
                             Seleccione un cliente y haga clic en consultar para ver los resultados.
                         </td>
                     </tr>
@@ -119,7 +120,7 @@
             const idZona = document.getElementById('selZona').value;
             if (!id) return;
             const tbody = document.querySelector('#tblResultados tbody');
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
             try {
                 let url = `/api/carga-imagenes-por-cliente?id_cliente=${id}`;
                 if (idZona) url += `&id_zona=${idZona}`;
@@ -133,13 +134,14 @@
                 }
 
                 if (!Array.isArray(rows) || rows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3">No se encontraron sucursales.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4">No se encontraron sucursales.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = rows.map(r => `<tr>
                     <td>${r.NombreSucursal}</td>
                     <td>${r.Zona || '-'}</td>
+                    <td>${r.Repositor || '-'}</td>
                     <td style="text-align: center;" class="${r.TieneImagenes ? 'check-yes' : 'check-no'}">
                         ${r.TieneImagenes ? 'SI' : 'NO'}
                     </td>
@@ -149,7 +151,7 @@
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="3">Error en consulta</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4">Error en consulta</td></tr>';
             }
         }
 
@@ -181,6 +183,7 @@
             const datosParaExportar = ultimaConsulta.map(r => ({
                 Sucursal: r.NombreSucursal || '',
                 Zona: r.Zona || '',
+                Repositor: r.Repositor || '',
                 "Imágenes cargadas": r.TieneImagenes ? 'Sí' : 'No'
             }));
             const hoja = XLSX.utils.json_to_sheet(datosParaExportar);

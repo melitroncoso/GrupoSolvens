@@ -23,7 +23,7 @@
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
             </a>
-            <button class="btn-toggle-sidebar" id="btnToggleSidebar">
+            <button class="btn-toggle-sidebar btn-toggle-fotos" id="btnToggleSidebar">
                 <i class="fas fa-filter"></i>
                 <span>Filtros</span>
             </button>
@@ -156,6 +156,7 @@
     </div>
 
     <div id="toast" class="toast"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 
     <script>
@@ -171,12 +172,20 @@
 
         btnToggle.addEventListener('click', () => {
             sidebar.classList.add('activo');
-            btnToggle.classList.add('oculto'); // Desaparece al abrir
+            btnToggle.classList.add('oculto');
+            document.getElementById('sidebarOverlay').classList.add('activo');
         });
 
         document.getElementById('btnCerrarSidebar').addEventListener('click', () => {
             sidebar.classList.remove('activo');
-            btnToggle.classList.remove('oculto'); // Reaparece al cerrar
+            btnToggle.classList.remove('oculto');
+            document.getElementById('sidebarOverlay').classList.remove('activo');
+        });
+
+        document.getElementById('sidebarOverlay').addEventListener('click', () => {
+            sidebar.classList.remove('activo');
+            btnToggle.classList.remove('oculto');
+            document.getElementById('sidebarOverlay').classList.remove('activo');
         });
 
         // ══════════════════════════════════════════════════════════════════════════════
