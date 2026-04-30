@@ -95,20 +95,6 @@
                 </div>
             </div>
 
-            <!-- Canales -->
-            <div class="grupo-filtro">
-                <div class="filtro-header">
-                    <label class="label-filtro">Canales</label>
-                    <i class="fas fa-chevron-down icono-toggle"></i>
-                </div>
-                <div class="filtro-contenido">
-                    <p class="descripcion-filtro">Seleccione el canal:</p>
-                    <select class="select-filtro" id="filtroCanal">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-            </div>
-
             <!-- Región -->
             <div class="grupo-filtro">
                 <div class="filtro-header">
@@ -256,6 +242,7 @@
 
                 poblarSelect('filtroCadena', data.cadenas || []);
                 poblarSelect('filtroSucursal', data.sucursales || []);
+                poblarSelect('filtroRegion', data.regiones || []);
 
                 // 2. Cargar Clientes
                 const resCli = await fetch(`${API_BASE}/clientes-activos`);
@@ -282,20 +269,23 @@
 
         function buildParams() {
             const p = new URLSearchParams();
-            const fDesde = document.getElementById('fechaDesde').value;
-            const fHasta = document.getElementById('fechaHasta').value;
-            const cadena = document.getElementById('filtroCadena').value;
+            const fDesde  = document.getElementById('fechaDesde').value;
+            const fHasta  = document.getElementById('fechaHasta').value;
+            const cadena  = document.getElementById('filtroCadena').value;
             const sucursal = document.getElementById('filtroSucursal').value;
+            const region  = document.getElementById('filtroRegion').value;
             const cliente = document.getElementById('filtroCliente').value;
 
-            if (fDesde) p.set('fecha_desde', fDesde);
-            if (fHasta) p.set('fecha_hasta', fHasta);
-            if (cadena) p.set('id_cadena', cadena);
+            if (fDesde)   p.set('fecha_desde', fDesde);
+            if (fHasta)   p.set('fecha_hasta', fHasta);
+            if (cadena)   p.set('id_cadena', cadena);
             if (sucursal) p.set('id_sucursal', sucursal);
-            if (cliente) p.set('id_cliente', cliente);
+            if (region)   p.set('id_region', region);
+            if (cliente)  p.set('id_cliente', cliente);
 
             return p;
         }
+
 
         async function cargarDatos() {
             mostrarCargando();
@@ -470,7 +460,7 @@
 
         document.getElementById('btnAplicar').addEventListener('click', cargarDatos);
         document.getElementById('btnLimpiar').addEventListener('click', () => {
-            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroCanal', 'filtroRegion', 'filtroCliente']
+            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroRegion', 'filtroCliente']
                 .forEach(id => document.getElementById(id).value = '');
             cargarDatos();
         });

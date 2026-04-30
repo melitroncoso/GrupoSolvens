@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style/filtros.css">
     <link rel="stylesheet" href="style/vista_fotos.css">
-    <link rel="stylesheet" href="style/inicio.css"></head>
+    <link rel="stylesheet" href="style/inicio.css">
+    <!-- PptxGenJS Library -->
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+</head>
 
 <body>
 
@@ -466,28 +469,164 @@
         document.getElementById('btnAplicarFiltros').onclick = applyFilters;
         document.getElementById('btnLimpiarFiltros').onclick = clearFilters;
 
+        async function imgUrlToBase64(url) {
+            try {
+                let fetchUrl = url;
+                if (url.startsWith('http')) {
+                    fetchUrl = `/api/proxy-imagen?url=${encodeURIComponent(url)}`;
+                }
+                const res = await fetch(fetchUrl);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                return await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (err) {
+                console.error('Error cargando imagen:', err);
+                return null;
+            }
+        }
+
         document.getElementById('btnExportarPPT').onclick = async () => {
-            const clienteSeleccionado = document.getElementById('filtroCliente').value;
-            if (!clienteSeleccionado) {
-                mostrarToast('Seleccione un cliente para exportar.', 'error');
+            if (!filteredVisitas || filteredVisitas.length === 0) {
+                mostrarToast('No hay visitas para exportar con los filtros actuales.', 'error');
                 return;
             }
+
+            const btn = document.getElementById('btnExportarPPT');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Generando...</span>';
+            btn.disabled = true;
+
             try {
-                const res = await fetch(`${URL_BASE}/exportar-ppt?cliente=${encodeURIComponent(clienteSeleccionado)}`);
-                if (res.ok) {
-                    const blob = await res.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Evidencia_${clienteSeleccionado}.pptx`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    mostrarToast('PPT exportado correctamente.');
-                } else {
-                    mostrarToast('Error al exportar PPT.', 'error');
+                const pptx = new PptxGenJS();
+                pptx.layout = 'LAYOUT_16x9';
+
+                // --- PORTADA ---
+                const slidePortada = pptx.addSlide();
+                slidePortada.bkgd = { color: 'F5F5F5' };
+                slidePortada.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.6, fill: { color: 'DC2626' } });
+
+                const logoUrl = '/IMG/logo.png';
+                const logoB64 = await imgUrlToBase64(logoUrl);
+                let headerLogoW, headerLogoH;
+
+                if (logoB64) {
+                    const imgObj = new Image();
+                    await new Promise(res => { imgObj.onload = res; imgObj.src = logoUrl; });
+                    const ratio = imgObj.width / imgObj.height;
+
+                    let coverLogoW = 3.5;
+                    let coverLogoH = coverLogoW / ratio;
+                    if (coverLogoH > 1.8) { coverLogoH = 1.8; coverLogoW = coverLogoH * ratio; }
+
+                    slidePortada.addImage({
+                        data: logoB64,
+                        x: (10 - coverLogoW) / 2, y: 1.0,
+                        w: coverLogoW, h: coverLogoH,
+                        sizing: { type: 'contain', w: coverLogoW, h: coverLogoH }
+                    });
+
+                    headerLogoH = 0.45;
+                    headerLogoW = headerLogoH * ratio;
+                    if (headerLogoW > 1.8) { headerLogoW = 1.8; headerLogoH = headerLogoW / ratio; }
                 }
+
+                const clienteFiltro = document.getElementById('filtroCliente').value;
+                const tituloReporte = clienteFiltro ? `Cliente: ${clienteFiltro}` : 'Todos los Clientes';
+
+                slidePortada.addText('Reporte de Evidencia Fotográfica', {
+                    x: 0, y: 3.0, w: '100%', h: 0.8,
+                    fontSize: 32, color: '8B0000', bold: true, align: 'center', fontFace: 'Arial'
+                });
+                slidePortada.addText(tituloReporte, {
+                    x: 0, y: 3.9, w: '100%', h: 0.5,
+                    fontSize: 18, color: '333333', align: 'center'
+                });
+                slidePortada.addText(`Exportado el: ${new Date().toLocaleDateString('es-AR')}`, {
+                    x: 0, y: 4.8, w: '100%', h: 0.4,
+                    fontSize: 12, color: '666666', align: 'center'
+                });
+
+                // --- DIAPOSITIVAS DE CONTENIDO ---
+                for (const v of filteredVisitas) {
+                    // Solo imágenes aprobadas
+                    const imgs = v.imagenes.filter(img => img.estado === 'Aprobado');
+                    if (imgs.length === 0) continue;
+
+                    let imageChunks = [];
+                    if (imgs.length <= 3) {
+                        imageChunks.push(imgs);
+                    } else if (imgs.length === 4) {
+                        imageChunks.push(imgs.slice(0, 2), imgs.slice(2, 4));
+                    } else if (imgs.length === 5) {
+                        imageChunks.push(imgs.slice(0, 3), imgs.slice(3, 5));
+                    } else {
+                        for (let k = 0; k < imgs.length; k += 3) imageChunks.push(imgs.slice(k, k + 3));
+                    }
+
+                    for (let cIdx = 0; cIdx < imageChunks.length; cIdx++) {
+                        const chunk = imageChunks[cIdx];
+                        const count = chunk.length;
+
+                        const slide = pptx.addSlide();
+                        slide.bkgd = { color: 'F9F9F9' };
+                        slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.6, fill: { color: 'DC2626' } });
+
+                        if (logoB64 && headerLogoW) {
+                            slide.addImage({
+                                data: logoB64,
+                                x: 0.2, y: (0.6 - headerLogoH) / 2,
+                                w: headerLogoW, h: headerLogoH,
+                                sizing: { type: 'contain', w: headerLogoW, h: headerLogoH }
+                            });
+                        }
+
+                        const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
+                        slide.addText(`${v.cadena} | ${v.cliente} | ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                            x: 1.5, y: 0.05, w: 8.3, h: 0.5,
+                            fontSize: 11, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
+                        });
+
+                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                            x: 0.5, y: 0.7, w: 9, h: 0.4,
+                            fontSize: 20, color: 'DC2626', bold: true
+                        });
+
+                        const areaY = 1.3, areaW = 9, areaH = 4.1, gutter = 0.3;
+                        let cW = (areaW - (count - 1) * gutter) / count;
+                        let startX = 0.5;
+
+                        if (count === 1) { cW = 5; startX = 0.5 + (areaW - cW) / 2; }
+                        else if (count === 2) { cW = 4; startX = 0.5 + (areaW - (cW * 2 + gutter)) / 2; }
+
+                        for (let i = 0; i < count; i++) {
+                            const imgB64 = await imgUrlToBase64(chunk[i].ruta);
+                            if (imgB64) {
+                                slide.addImage({
+                                    data: imgB64,
+                                    x: startX + i * (cW + gutter),
+                                    y: areaY,
+                                    sizing: { type: 'contain', w: cW, h: areaH }
+                                });
+                            }
+                        }
+                    }
+                }
+
+                const suffix = clienteFiltro ? `_${clienteFiltro}` : '';
+                await pptx.writeFile({ fileName: `Evidencia_Fotografica${suffix}_${new Date().toISOString().slice(0,10)}.pptx` });
+                mostrarToast('PPT exportado correctamente.');
+
             } catch (err) {
-                mostrarToast('Error de conexión.', 'error');
+                console.error('Error al generar PPTX:', err);
+                mostrarToast('Error al generar el PowerPoint.', 'error');
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
             }
         };
 

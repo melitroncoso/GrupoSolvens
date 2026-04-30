@@ -92,31 +92,7 @@
                 </div>
             </div>
 
-            <div class="grupo-filtro">
-                <div class="filtro-header">
-                    <label class="label-filtro">Canales</label>
-                    <i class="fas fa-chevron-down icono-toggle"></i>
-                </div>
-                <div class="filtro-contenido">
-                    <p class="descripcion-filtro">Seleccione el canal:</p>
-                    <select class="select-filtro" id="filtroCanal">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-            </div>
 
-            <div class="grupo-filtro">
-                <div class="filtro-header">
-                    <label class="label-filtro">Región</label>
-                    <i class="fas fa-chevron-down icono-toggle"></i>
-                </div>
-                <div class="filtro-contenido">
-                    <p class="descripcion-filtro">Seleccione la región:</p>
-                    <select class="select-filtro" id="filtroRegion">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-            </div>
 
             <div class="grupo-filtro">
                 <div class="filtro-header">
@@ -247,7 +223,6 @@
 
                 poblarSelect('filtroCadena', data.cadenas || []);
                 poblarSelect('filtroSucursal', data.sucursales || []);
-                poblarSelect('filtroCanal', data.canales || []);
                 poblarSelect('filtroRegion', data.regiones || []);
 
                 // Cargar clientes
@@ -282,7 +257,6 @@
             if (v('fechaHasta')) p.set('fecha_hasta', v('fechaHasta'));
             if (v('filtroCadena')) p.set('id_cadena', v('filtroCadena'));
             if (v('filtroSucursal')) p.set('id_sucursal', v('filtroSucursal'));
-            if (v('filtroCanal')) p.set('id_canal', v('filtroCanal'));
             if (v('filtroRegion')) p.set('id_region', v('filtroRegion'));
             if (v('filtroCliente')) p.set('id_cliente', v('filtroCliente'));
 
@@ -403,7 +377,7 @@
         document.getElementById('btnAplicar').addEventListener('click', cargarDatos);
 
         document.getElementById('btnLimpiar').addEventListener('click', () => {
-            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroCanal', 'filtroRegion', 'filtroCliente']
+            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroRegion', 'filtroCliente']
                 .forEach(id => document.getElementById(id).value = '');
             cargarDatos();
         });

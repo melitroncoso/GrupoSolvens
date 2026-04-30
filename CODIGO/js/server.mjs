@@ -1176,7 +1176,7 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/visitas', async (req, res, next) => {
-    const { fecha_desde, fecha_hasta, id_cadena, id_sucursal, id_cliente } = req.query;
+    const { fecha_desde, fecha_hasta, id_cadena, id_sucursal, id_cliente, id_region } = req.query;
     try {
         let sql = `
             SELECT v.id AS "ID_Visita", v.fecha AS "Fecha",
@@ -1188,6 +1188,8 @@ app.get('/api/visitas', async (req, res, next) => {
             LEFT JOIN usuario ucli  ON v.id_cliente = ucli.id
             LEFT JOIN sucursal s    ON v.id_sucursal = s.id
             LEFT JOIN cadena ca     ON s.id_cadena = ca.id
+            LEFT JOIN subzona sz    ON s.id_subzona = sz.id
+            LEFT JOIN zona z        ON sz.id_zona = z.id
             WHERE 1=1`;
         const params = [];
         let idx = 1;
@@ -1197,12 +1199,14 @@ app.get('/api/visitas', async (req, res, next) => {
         if (id_cadena)   { sql += ` AND s.id_cadena = $${idx++}`; params.push(id_cadena); }
         if (id_sucursal) { sql += ` AND v.id_sucursal = $${idx++}`; params.push(id_sucursal); }
         if (id_cliente)  { sql += ` AND v.id_cliente = $${idx++}`; params.push(id_cliente); }
+        if (id_region)   { sql += ` AND z.id = $${idx++}`; params.push(id_region); }
 
         sql += ' ORDER BY v.fecha DESC';
         const result = await query(sql, params);
         res.json(result.rows);
     } catch (e) { next(e); }
 });
+
 
 app.get('/api/visitas-pendientes', async (req, res, next) => {
     try {
