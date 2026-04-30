@@ -1479,17 +1479,7 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
                         WHERE v2.id_sucursal = s.id
                           AND v2.id_cliente = $1
                           AND DATE_TRUNC('month', v2.fecha) = DATE_TRUNC('month', CURRENT_DATE)
-                   ) THEN 1 ELSE 0 END AS "TieneImagenes",
-                   (
-                        SELECT u.nombre FROM visita v3
-                        JOIN usuario u ON u.id = v3.id_repo
-                        JOIN imagen im2 ON im2.id_visita = v3.id
-                        WHERE v3.id_sucursal = s.id
-                          AND v3.id_cliente = $1
-                          AND DATE_TRUNC('month', v3.fecha) = DATE_TRUNC('month', CURRENT_DATE)
-                        ORDER BY v3.fecha DESC
-                        LIMIT 1
-                   ) AS "Repositor"
+                   ) THEN 1 ELSE 0 END AS "TieneImagenes"
             FROM abastece a
             JOIN sucursal s ON a.id_sucursal = s.id
             LEFT JOIN cadena c ON s.id_cadena = c.id

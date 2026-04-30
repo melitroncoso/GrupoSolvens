@@ -23,7 +23,7 @@
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
             </a>
-            <button class="btn-toggle-sidebar btn-toggle-fotos" id="btnToggleSidebar">
+            <button class="btn-toggle-sidebar" id="btnToggleSidebar">
                 <i class="fas fa-filter"></i>
                 <span>Filtros</span>
             </button>
@@ -171,7 +171,6 @@
     </div>
 
     <div id="toast"></div>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <script>
         const API_BASE = '/api';
@@ -195,17 +194,10 @@
         document.getElementById('btnToggleSidebar').addEventListener('click', () => {
             document.getElementById('sidebarFiltros').classList.add('activo');
             document.getElementById('btnToggleSidebar').classList.add('oculto');
-            document.getElementById('sidebarOverlay').classList.add('activo');
         });
         document.getElementById('btnCerrarSidebar').addEventListener('click', () => {
             document.getElementById('sidebarFiltros').classList.remove('activo');
             document.getElementById('btnToggleSidebar').classList.remove('oculto');
-            document.getElementById('sidebarOverlay').classList.remove('activo');
-        });
-        document.getElementById('sidebarOverlay').addEventListener('click', () => {
-            document.getElementById('sidebarFiltros').classList.remove('activo');
-            document.getElementById('btnToggleSidebar').classList.remove('oculto');
-            document.getElementById('sidebarOverlay').classList.remove('activo');
         });
 
         // Grupos colapsables
