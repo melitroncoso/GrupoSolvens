@@ -45,6 +45,13 @@
             </div>
 
             <div class="filtro-item">
+                <label class="label-pequeno">Seleccione Zona</label>
+                <select id="selZona" class="select-filtro select-consulta-filtro">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+
+            <div class="filtro-item">
                 <label class="label-pequeno">Filtrar Imágenes</label>
                 <select id="filtroImagenes" class="select-filtro select-consulta-filtro">
                     <option value="">Todas</option>
@@ -65,12 +72,13 @@
                 <thead>
                     <tr>
                         <th>Sucursal / Punto de Venta</th>
+                        <th>Zona</th>
                         <th class="col-centrada">Imágenes Cargadas</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="2" class="estado-tabla-inicial">
+                        <td colspan="3" class="estado-tabla-inicial">
                             Seleccione un cliente y haga clic en consultar para ver los resultados.
                         </td>
                     </tr>
@@ -93,14 +101,29 @@
             }
         }
 
+        async function cargarZonas() {
+            const sel = document.getElementById('selZona');
+            try {
+                const res = await fetch('/api/zonas');
+                const zonas = await res.json();
+                sel.innerHTML = '<option value="">Todas</option>' +
+                    zonas.map(z => `<option value="${z.id}">${z.nombre}</option>`).join('');
+            } catch (e) {
+                sel.innerHTML = '<option value="">Error al cargar</option>';
+            }
+        }
+
         async function consultar() {
             const sel = document.getElementById('selCliente');
             const id = sel.value;
+            const idZona = document.getElementById('selZona').value;
             if (!id) return;
             const tbody = document.querySelector('#tblResultados tbody');
-            tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
             try {
-                const res = await fetch(`/api/carga-imagenes-por-cliente?id_cliente=${id}`);
+                let url = `/api/carga-imagenes-por-cliente?id_cliente=${id}`;
+                if (idZona) url += `&id_zona=${idZona}`;
+                const res = await fetch(url);
                 let rows = await res.json();
 
                 const filtroImg = document.getElementById('filtroImagenes').value;
@@ -110,12 +133,13 @@
                 }
 
                 if (!Array.isArray(rows) || rows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="2">No se encontraron sucursales.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="3">No se encontraron sucursales.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = rows.map(r => `<tr>
                     <td>${r.NombreSucursal}</td>
+                    <td>${r.Zona || '-'}</td>
                     <td style="text-align: center;" class="${r.TieneImagenes ? 'check-yes' : 'check-no'}">
                         ${r.TieneImagenes ? 'SI' : 'NO'}
                     </td>
@@ -125,7 +149,7 @@
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = '<tr><td colspan="2">Error en consulta</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3">Error en consulta</td></tr>';
             }
         }
 
@@ -135,6 +159,7 @@
             const tipo = Number(sessionStorage.getItem('tipoUsuario'));
             if (tipo !== 1) { window.location.href = 'login.html'; return; }
             cargarClientes();
+            cargarZonas();
             document.getElementById('btnBuscar').addEventListener('click', consultar);
             document.getElementById('btnExportar').addEventListener('click', exportarExcel);
         });
@@ -155,6 +180,7 @@
             // preparar datos formato JSON para SheetJS
             const datosParaExportar = ultimaConsulta.map(r => ({
                 Sucursal: r.NombreSucursal || '',
+                Zona: r.Zona || '',
                 "Imágenes cargadas": r.TieneImagenes ? 'Sí' : 'No'
             }));
             const hoja = XLSX.utils.json_to_sheet(datosParaExportar);

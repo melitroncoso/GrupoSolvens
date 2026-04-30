@@ -1450,17 +1450,25 @@ app.get('/api/visitas-semana-cliente', async (req, res, next) => {
 });
 
 app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
-    const { id_cliente } = req.query;
+    const { id_cliente, id_zona } = req.query;
     if (!id_cliente) return res.status(400).json({ error: 'Falta id_cliente' });
     try {
         const check = await query('SELECT id FROM usuario WHERE id = $1', [id_cliente]);
         if (check.rows.length === 0)
             return res.status(404).json({ error: 'Cliente no encontrado' });
 
+        const params = [id_cliente];
+        let zonaFilter = '';
+        if (id_zona) {
+            params.push(id_zona);
+            zonaFilter = `AND sz.id_zona = $${params.length}`;
+        }
+
         const result = await query(`
             SELECT DISTINCT s.id AS "idSucursal",
                    c.nombre || ' - ' || s.calle || ' ' || COALESCE(CAST(s.altura AS VARCHAR),'') ||
                        ', ' || s.localidad AS "NombreSucursal",
+                   z.nombre AS "Zona",
                    CASE WHEN EXISTS (
                         SELECT 1 FROM visita v2
                         JOIN imagen im ON im.id_visita = v2.id
@@ -1471,9 +1479,11 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
             FROM abastece a
             JOIN sucursal s ON a.id_sucursal = s.id
             LEFT JOIN cadena c ON s.id_cadena = c.id
-            WHERE a.id_cliente = $1
+            LEFT JOIN subzona sz ON s.id_subzona = sz.id
+            LEFT JOIN zona z ON sz.id_zona = z.id
+            WHERE a.id_cliente = $1 ${zonaFilter}
             ORDER BY "NombreSucursal"
-        `, [id_cliente]);
+        `, params);
 
         res.json(result.rows);
     } catch (e) { next(e); }

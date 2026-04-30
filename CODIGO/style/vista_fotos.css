@@ -131,13 +131,13 @@ body {
 }
 
 /* Centrado si hay pocos elementos y no rebalsan el contenedor */
-.galeria-grid:not(:has(:nth-child(4))) {
+.galeria-grid:not(:has(:nth-child(6))) {
     justify-content: center;
 }
 
 /* Con centrado, los pseudo-elementos no deben empujar */
-.galeria-grid:not(:has(:nth-child(4)))::before,
-.galeria-grid:not(:has(:nth-child(4)))::after {
+.galeria-grid:not(:has(:nth-child(6)))::before,
+.galeria-grid:not(:has(:nth-child(6)))::after {
     display: none;
 }
 
@@ -148,7 +148,7 @@ body {
 
 .foto-card {
     position: relative;
-    flex: 0 0 calc((100% - 64px) / 3);
+    flex: 0 0 calc((100% - 128px) / 5);
     cursor: pointer;
     border-radius: 20px;
     overflow: hidden;
