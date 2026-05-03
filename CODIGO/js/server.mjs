@@ -866,31 +866,48 @@ app.get('/api/imagenes-visitas', async (req, res, next) => {
 app.patch('/api/imagen/:id/estado', async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
     const { estado, rotacion } = req.body;
+    const rot = parseInt(rotacion || 0, 10);
     const valid = ['Pendiente', 'Aprobado', 'Rechazado'];
+
     if (isNaN(id) || !valid.includes(estado))
         return res.status(400).json({ success: false, message: 'ID o estado inválido' });
+
     try {
         const check = await query('SELECT ruta_imagen FROM imagen WHERE id = $1', [id]);
         if (check.rows.length === 0)
             return res.status(404).json({ success: false, message: 'Imagen no encontrada' });
 
-        if (estado === 'Aprobado' && rotacion && rotacion > 0) {
+        // Si se aprueba y hay una rotación pendiente, procesar la imagen en R2
+        if (estado === 'Aprobado' && rot > 0) {
             const url = check.rows[0].ruta_imagen;
-            const filename = url.substring(url.lastIndexOf('/') + 1);
+            // Extraer nombre de archivo real (sin parámetros de búsqueda si los hay)
+            let filename = url.substring(url.lastIndexOf('/') + 1);
+            if (filename.includes('?')) filename = filename.split('?')[0];
+
+            console.log(`Rotando imagen ${id}: ${filename} a ${rot} grados...`);
+
             try {
                 const imgRes = await fetch(url);
                 if (imgRes.ok) {
                     const arrayBuffer = await imgRes.arrayBuffer();
-                    const rotadoBuffer = await sharp(Buffer.from(arrayBuffer)).rotate(rotacion).jpeg({ quality: 80 }).toBuffer();
+                    const rotadoBuffer = await sharp(Buffer.from(arrayBuffer))
+                        .rotate(rot)
+                        .jpeg({ quality: 90 }) // Un poco más de calidad para evitar degradación excesiva
+                        .toBuffer();
+
                     await r2.send(new PutObjectCommand({
                         Bucket: R2_BUCKET,
                         Key: filename,
                         Body: rotadoBuffer,
                         ContentType: 'image/jpeg',
+                        CacheControl: 'no-cache', // Intentar evitar que se cachee la versión vieja
                     }));
+                    console.log(`Imagen ${id} rotada y guardada en R2.`);
+                } else {
+                    console.error(`Error al descargar imagen para rotar: ${imgRes.status}`);
                 }
             } catch (err) {
-                console.error("Error al rotar imagen en R2:", err);
+                console.error("Error al procesar rotación en server:", err);
             }
         }
 
