@@ -84,6 +84,30 @@
     color: #aaa;
 }
 
+/* ── BTN VOLVER ── */
+.btn-volver {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid #444;
+    color: #aaaaaa;
+    font-size: 16px;
+    transition: all 0.3s;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.btn-volver:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+    transform: translateX(-2px);
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
     .header {

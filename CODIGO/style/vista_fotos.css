@@ -6,9 +6,9 @@
 
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background-color: #0f172a;
+    background-color: #1a1a1a;
     min-height: 100vh;
-    color: #f1f5f9;
+    color: #ffffff;
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
@@ -479,27 +479,7 @@ body {
     }
 }
 
-/* ── BTN-VOLVER (versión vista_fotos) ── */
-.btn-volver {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: none;
-    color: #ef4444;
-    transition: all 0.3s;
-    text-decoration: none;
-}
-
-.btn-volver:hover {
-    background: #ef4444;
-    color: white;
-    transform: translateX(-3px);
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-}
+/* btn-volver → ver shared.css */
 
 /* ── STATUS PILLS (gallery cards) ── */
 .foto-card .status-pill {
