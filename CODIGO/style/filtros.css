@@ -827,3 +827,29 @@
 .sidebar-overlay.activo {
     display: block;
 }
+/* ── RESPONSIVE MOBILE: sidebar 1 columna ── */
+@media (max-width: 600px) {
+    .sidebar-filtros {
+        width: 100vw;
+        right: -100vw;
+    }
+
+    .sidebar-filtros.activo {
+        right: 0;
+    }
+
+    .sidebar-grupos {
+        grid-template-columns: 1fr;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .grupo-filtro.filtro-periodo .rango-fechas {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .botones-filtro {
+        padding: 12px;
+        grid-template-columns: 1fr 1fr;
+    }
+}
