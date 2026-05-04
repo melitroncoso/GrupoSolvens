@@ -214,37 +214,51 @@
         const tagsEl = document.getElementById('tagsActivos');
         const paginacionEl = document.getElementById('paginacion');
 
-        // ── Sidebar ──
-        document.getElementById('btnToggleSidebar').addEventListener('click', () => {
-            document.getElementById('sidebarFiltros').classList.add('activo');
-            document.getElementById('btnToggleSidebar').classList.add('oculto');
-        });
-        document.getElementById('btnCerrarSidebar').addEventListener('click', () => {
-            document.getElementById('sidebarFiltros').classList.remove('activo');
-            document.getElementById('btnToggleSidebar').classList.remove('oculto');
-        });
+        // ── Sidebar: misma lógica que filtros.js ──
+        const sidebarFiltros   = document.getElementById('sidebarFiltros');
+        const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+        const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
 
-        // ── Colapsar/expandir grupos ──
-        document.querySelectorAll('.filtro-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const grupo = header.parentElement;
-                const contenido = header.nextElementSibling;
-                const icono = header.querySelector('.icono-toggle');
-                grupo.classList.toggle('colapsado');
-                if (grupo.classList.contains('colapsado')) {
-                    contenido.style.maxHeight = '0';
-                    icono.style.transform = 'rotate(-90deg)';
-                } else {
-                    contenido.style.maxHeight = contenido.scrollHeight + 'px';
-                    icono.style.transform = 'rotate(0deg)';
-                }
+        // Crear wrapper scrolleable con grid 2 columnas y marcar el grupo periodo
+        (function wrapGrupos() {
+            const grupos = sidebarFiltros.querySelectorAll('.grupo-filtro');
+            if (!grupos.length) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'sidebar-grupos';
+            // Insertar dentro de sidebar-cuerpo si existe, si no directamente en el aside
+            const cuerpoSidebar = sidebarFiltros.querySelector('.sidebar-cuerpo');
+            const contenedor = cuerpoSidebar || sidebarFiltros;
+            contenedor.insertBefore(wrapper, grupos[0]);
+            grupos.forEach(g => wrapper.appendChild(g));
+
+            // El primer grupo (Periodo / fechas) ocupa las 2 columnas
+            if (grupos[0]) grupos[0].classList.add('filtro-periodo');
+
+            // Mostrar todos los contenidos expandidos (sin acordeón)
+            grupos.forEach(g => {
+                const contenido = g.querySelector('.filtro-contenido');
+                if (contenido) contenido.style.maxHeight = 'none';
             });
-        });
+        })();
+
+        function abrirSidebar() {
+            sidebarFiltros.classList.add('activo');
+            btnToggleSidebar.classList.add('oculto');
+            document.body.classList.add('sidebar-abierto');
+        }
+        function cerrarSidebar() {
+            sidebarFiltros.classList.remove('activo');
+            btnToggleSidebar.classList.remove('oculto');
+            document.body.classList.remove('sidebar-abierto');
+        }
+
+        btnToggleSidebar.addEventListener('click', abrirSidebar);
+        btnCerrarSidebar.addEventListener('click', cerrarSidebar);
 
         // comprovacionidcliente
         document.addEventListener('DOMContentLoaded', () => {
             if (!idCliente) {
-                // no se encontro el id
                 document.getElementById('subtitulo').textContent = '';
                 cargarOpciones();
                 return;
@@ -254,13 +268,6 @@
             const nombre = sessionStorage.getItem('nombre_usuario');
             document.getElementById('subtitulo').textContent =
                 nombre ? `Visitas registradas para ${nombre}.` : 'Visitas registradas para tu cuenta.';
-
-            // Colapsar todos al inicio
-            document.querySelectorAll('.grupo-filtro').forEach(g => {
-                g.classList.add('colapsado');
-                g.querySelector('.filtro-contenido').style.maxHeight = '0';
-                g.querySelector('.icono-toggle').style.transform = 'rotate(-90deg)';
-            });
 
             cargarOpciones();
             cargarDatos();
