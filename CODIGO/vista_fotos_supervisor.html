@@ -49,74 +49,110 @@
                     <button class="btn-cerrar-sidebar" id="btnCerrarSidebar"><i class="fas fa-times"></i></button>
                 </div>
 
-                <div class="sidebar-grupos">
-
-                    <!-- Periodo — ocupa las 2 columnas -->
-                    <div class="grupo-filtro filtro-periodo">
-                        <div class="filtro-header">
-                            <label class="label-filtro">Periodo</label>
-                        </div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <div class="rango-fechas">
-                                <div><label class="label-pequeno">Desde:</label><input type="date" class="input-fecha" id="fechaDesde"></div>
-                                <div><label class="label-pequeno">Hasta:</label><input type="date" class="input-fecha" id="fechaHasta"></div>
-                            </div>
+            <div class="sidebar-cuerpo"><div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Periodo</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione un rango de fechas:</p>
+                        <div class="rango-fechas">
+                            <div><label class="label-pequeno">Desde:</label><input type="date" class="input-fecha" id="fechaDesde"></div>
+                            <div><label class="label-pequeno">Hasta:</label><input type="date" class="input-fecha" id="fechaHasta"></div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="grupo-filtro">
-                        <div class="filtro-header"><label class="label-filtro">Cadena</label></div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <select class="select-filtro" id="filtroCadena"><option value="">Todas</option></select>
-                        </div>
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Cadena</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
-
-                    <div class="grupo-filtro">
-                        <div class="filtro-header"><label class="label-filtro">Sucursal</label></div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <select class="select-filtro" id="filtroSucursal"><option value="">Todas</option></select>
-                        </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione la cadena:</p>
+                        <select class="select-filtro" id="filtroCadena">
+                            <option value="">Todas</option>
+                        </select>
                     </div>
+                </div>
 
-                    <div class="grupo-filtro">
-                        <div class="filtro-header"><label class="label-filtro">Zona</label></div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <select class="select-filtro" id="filtroZona"><option value="">Todas</option></select>
-                        </div>
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Sucursal</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
-
-                    <div class="grupo-filtro">
-                        <div class="filtro-header"><label class="label-filtro">Cliente</label></div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <select class="select-filtro" id="filtroCliente"><option value="">Todos</option></select>
-                        </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione la sucursal:</p>
+                        <select class="select-filtro" id="filtroSucursal">
+                            <option value="">Todas</option>
+                        </select>
                     </div>
+                </div>
 
-                    <div class="grupo-filtro">
-                        <div class="filtro-header"><label class="label-filtro">Repositor</label></div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <select class="select-filtro" id="filtroRepositor"><option value="">Todos</option></select>
-                        </div>
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Zona</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
                     </div>
-
-                    <div class="grupo-filtro">
-                        <div class="filtro-header"><label class="label-filtro">Canal</label></div>
-                        <div class="filtro-contenido" style="max-height:none;">
-                            <select class="select-filtro" id="filtroCanal"><option value="">Todos</option></select>
-                        </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione la zona:</p>
+                        <select class="select-filtro" id="filtroZona">
+                            <option value="">Todas</option>
+                        </select>
                     </div>
+                </div>
 
-                </div><!-- /sidebar-grupos -->
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Cliente</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione el cliente:</p>
+                        <select class="select-filtro" id="filtroCliente">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Repositor</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione el repositor:</p>
+                        <select class="select-filtro" id="filtroRepositor">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grupo-filtro">
+                    <div class="filtro-header">
+                        <label class="label-filtro">Canal</label>
+                        <i class="fas fa-chevron-down icono-toggle"></i>
+                    </div>
+                    <div class="filtro-contenido">
+                        <p class="descripcion-filtro">Seleccione el canal:</p>
+                        <select class="select-filtro" id="filtroCanal">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
 
                 <div class="botones-filtro">
-                    <button id="btnAplicarFiltros" class="btn-aplicar-filtros">Aplicar Filtros</button>
-                    <button id="btnLimpiarFiltros" class="btn-limpiar-filtros">Limpiar Filtros</button>
+                    <button class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar Filtros</button>
+                    <button class="btn-limpiar-filtros" id="btnLimpiarFiltros">Limpiar Filtros</button>
                 </div>
             </aside>
 
             <div id="contenedorVisitas" class="contenedor-visitas-full"></div>
         </div>
     </main>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="nav-container" id="navVisitas" style="display: none;">
         <button class="btn-nav-visita" id="prevVisita" title="Visita Anterior">
@@ -157,20 +193,21 @@
         let currentImg = 0;
 
         // ── Sidebar ──────────────────────────────────────────────────────────
-        const sidebarFiltros   = document.getElementById('sidebarFiltros');
-        const btnToggleSidebar = document.getElementById('btnToggleSidebar');
-        const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
-
-        btnToggleSidebar.addEventListener('click', () => {
-            sidebarFiltros.classList.add('activo');
-            btnToggleSidebar.classList.add('oculto');
-            document.body.classList.add('sidebar-abierto');
-        });
-        btnCerrarSidebar.addEventListener('click', () => {
-            sidebarFiltros.classList.remove('activo');
-            btnToggleSidebar.classList.remove('oculto');
-            document.body.classList.remove('sidebar-abierto');
-        });
+        document.getElementById('btnToggleSidebar').onclick = () => {
+            document.getElementById('sidebarFiltros').classList.add('activo');
+            document.getElementById('sidebarOverlay').classList.add('activo');
+            document.getElementById('btnToggleSidebar').classList.add('oculto');
+        };
+        document.getElementById('btnCerrarSidebar').onclick = () => {
+            document.getElementById('sidebarFiltros').classList.remove('activo');
+            document.getElementById('sidebarOverlay').classList.remove('activo');
+            document.getElementById('btnToggleSidebar').classList.remove('oculto');
+        };
+        document.getElementById('sidebarOverlay').onclick = () => {
+            document.getElementById('sidebarFiltros').classList.remove('activo');
+            document.getElementById('sidebarOverlay').classList.remove('activo');
+            document.getElementById('btnToggleSidebar').classList.remove('oculto');
+        };
 
         async function cargarVisitas() {
             const idSupervisor = sessionStorage.getItem('id_usuario');
@@ -234,12 +271,12 @@
             const llenar = (id, opciones, titulo) => {
                 document.getElementById(id).innerHTML = `<option value="">${titulo}</option>` + opciones;
             };
-            llenar('filtroCliente',    makeOptions(visitasData.map(v => v.cliente)),    'Cliente (todos)');
-            llenar('filtroCadena',     makeOptions(visitasData.map(v => v.cadena)),     'Cadena (todas)');
-            llenar('filtroSucursal',   makeOptions(visitasData.map(v => v.sucursal)),   'Sucursal (todas)');
-            llenar('filtroZona',       makeOptions(visitasData.map(v => v.zona)),       'Zona (todas)');
-            llenar('filtroCanal',      makeOptions(visitasData.map(v => v.canal)),      'Canal (todos)');
-            llenar('filtroRepositor',  makeOptions(visitasData.map(v => v.repositor || v.usuario)), 'Repositor (todos)');
+            llenar('filtroCliente',   makeOptions(visitasData.map(v => v.cliente)),             'Todos');
+            llenar('filtroCadena',    makeOptions(visitasData.map(v => v.cadena)),              'Todas');
+            llenar('filtroSucursal',  makeOptions(visitasData.map(v => v.sucursal)),            'Todas');
+            llenar('filtroZona',      makeOptions(visitasData.map(v => v.zona)),                'Todas');
+            llenar('filtroCanal',     makeOptions(visitasData.map(v => v.canal)),               'Todos');
+            llenar('filtroRepositor', makeOptions(visitasData.map(v => v.repositor || v.usuario)), 'Todos');
         }
 
         function applyFilters() {
@@ -253,8 +290,8 @@
             const fRepositor = document.getElementById('filtroRepositor').value;
 
             filteredVisitas = visitasData.filter(v => {
-                if (fDesde  && new Date(v.fecha).setHours(0,0,0,0) < new Date(fDesde).setHours(0,0,0,0)) return false;
-                if (fHasta  && new Date(v.fecha).setHours(0,0,0,0) > new Date(fHasta).setHours(0,0,0,0)) return false;
+                if (fDesde     && new Date(v.fecha).setHours(0,0,0,0) < new Date(fDesde).setHours(0,0,0,0)) return false;
+                if (fHasta     && new Date(v.fecha).setHours(0,0,0,0) > new Date(fHasta).setHours(0,0,0,0)) return false;
                 if (fCliente   && v.cliente !== fCliente) return false;
                 if (fCad       && v.cadena !== fCad) return false;
                 if (fSuc       && v.sucursal !== fSuc) return false;
@@ -448,6 +485,8 @@
 
         document.addEventListener('DOMContentLoaded', cargarVisitas);
     </script>
+
+    <script src="js/filtros.js"></script>
 
 </body>
 </html>
