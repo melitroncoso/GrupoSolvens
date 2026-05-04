@@ -2,32 +2,34 @@
 
 /* ── BOTÓN ABRIR SIDEBAR (derecha) ── */
 .btn-toggle-sidebar {
-    position: static;
+    position: fixed;
+    right: 20px;
+    top: 90px;
     background-color: #dc2626;
     color: #ffffff;
     border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: 12px;
+    padding: 20px 35px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
+    gap: 15px;
+    font-size: 20px;
+    font-weight: 700;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     cursor: pointer;
     z-index: 99;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
 }
 
 .btn-toggle-sidebar i {
-    font-size: 16px;
+    font-size: 24px;
 }
 
 .btn-toggle-sidebar:hover {
     background-color: #b91c1c;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.6);
 }
 
 .btn-toggle-sidebar.oculto {
@@ -47,9 +49,8 @@
 /* ── SIDEBAR (desde la derecha) ── */
 .sidebar-filtros {
     width: 300px;
-    background: rgba(15, 15, 15, 0.99);
-    backdrop-filter: blur(10px);
-    border-left: 1px solid #2a2a2a;
+    background: #111111;
+    border-left: 1px solid #222;
     padding: 0;
     overflow: hidden;
     position: fixed;
@@ -58,8 +59,8 @@
     top: 0;
     height: 100vh;
     z-index: 1001;
-    transition: right 0.35s ease;
-    box-shadow: -8px 0 32px rgba(0,0,0,0.7);
+    transition: right 0.3s ease;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.8);
     display: flex;
     flex-direction: column;
 }
@@ -73,13 +74,13 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px 20px 16px;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid #222;
     flex-shrink: 0;
 }
 
 .titulo-filtros {
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: #ffffff;
     margin: 0;
 }
@@ -100,79 +101,79 @@
 }
 
 /* ── GRUPOS FILTRO ── */
-.grupo-filtro {
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #333;
-    overflow: hidden;
-}
-
-.grupo-filtro:last-of-type {
-    border-bottom: none;
-}
-
-.filtro-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.3s ease;
-}
-
-.filtro-header:hover {
-    background-color: rgba(220, 38, 38, 0.1);
-    padding-left: 5px;
-}
-
-.filtro-header .label-filtro {
-    margin: 0;
+/* ── ZONA SCROLLEABLE ── */
+.sidebar-grupos {
     flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-content: start;
 }
 
-.icono-toggle {
-    color: #dc2626;
-    font-size: 14px;
-    transition: transform 0.3s ease;
+.sidebar-grupos::-webkit-scrollbar { width: 4px; }
+.sidebar-grupos::-webkit-scrollbar-track { background: transparent; }
+.sidebar-grupos::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+
+/* ── GRUPO FILTRO: card compacta ── */
+.grupo-filtro {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Periodo ocupa las 2 columnas */
+.grupo-filtro.filtro-periodo {
+    grid-column: 1 / -1;
+}
+
+/* Ocultar acordeón — todo visible */
+.filtro-header {
+    display: none;
 }
 
 .filtro-contenido {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    padding-bottom: 0;
-}
-
-.grupo-filtro:not(.colapsado) .filtro-contenido {
-    padding-bottom: 15px;
+    max-height: none !important;
+    overflow: visible;
 }
 
 .label-filtro {
     display: block;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
+    color: #888;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
 }
 
 .descripcion-filtro {
-    color: #aaaaaa;
-    font-size: 12px;
-    margin-bottom: 8px;
-    line-height: 1.4;
+    display: none;
 }
 
 .select-filtro {
     width: 100%;
-    padding: 8px 10px;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 4px;
+    padding: 7px 8px;
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 6px;
     color: #ffffff;
     font-size: 13px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin-bottom: 10px;
+    margin-bottom: 0;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    padding-right: 28px;
 }
 
 .select-filtro:focus {
@@ -187,24 +188,27 @@
 }
 
 .rango-fechas {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
 }
 
 .label-pequeno {
     display: block;
-    color: #aaaaaa;
-    font-size: 11px;
-    margin-bottom: 4px;
+    color: #888;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
 }
 
 .input-fecha {
     width: 100%;
     padding: 6px 8px;
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 4px;
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 6px;
     color: #ffffff;
     font-size: 12px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -219,12 +223,12 @@
 /* ── BOTONES FILTRO ── */
 .botones-filtro {
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
-    padding: 16px 20px;
-    border-top: 1px solid #2a2a2a;
-    background: rgba(15, 15, 15, 0.99);
+    padding: 14px 16px;
+    border-top: 1px solid #222;
+    background: #111111;
 }
 
 .btn-aplicar-filtros {
@@ -519,7 +523,6 @@
         padding: 7px 12px;
         font-size: 13px;
     }
-    /* botón ya está en el header, no necesita posición fixed */
 }
 
 @media (max-width: 768px) {
@@ -528,12 +531,14 @@
     }
 
     .btn-toggle-sidebar {
-        padding: 7px 12px;
-        font-size: 13px;
+        right: 10px;
+        top: 80px;
+        padding: 14px 20px;
+        font-size: 16px;
     }
 
     .btn-toggle-sidebar i {
-        font-size: 14px;
+        font-size: 20px;
     }
 
     .barra-resultados {
@@ -553,8 +558,9 @@
     }
 
     .btn-toggle-sidebar {
-        padding: 6px 12px;
-        font-size: 13px;
+        padding: 12px 16px;
+        font-size: 14px;
+        border-radius: 8px;
     }
 }
 
@@ -820,60 +826,4 @@
 }
 .sidebar-overlay.activo {
     display: block;
-}
-/* ── Zona scrolleable de filtros (wrapper agregado por filtros.js) ── */
-.sidebar-grupos {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 12px 20px;
-    min-height: 0;
-}
-
-.sidebar-grupos::-webkit-scrollbar { width: 4px; }
-.sidebar-grupos::-webkit-scrollbar-track { background: transparent; }
-.sidebar-grupos::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
-.sidebar-grupos::-webkit-scrollbar-thumb:hover { background: #444; }
-
-/* Bloquear scroll de página cuando sidebar está abierto */
-body.sidebar-abierto {
-    overflow: hidden;
-}
-
-/* ── HEADER CON MÚLTIPLES BOTONES (vista_fotos) ── */
-.btn-toggle-fotos span {
-    display: inline;
-}
-
-@media (max-width: 600px) {
-    /* Ocultar texto, mostrar solo ícono */
-    .btn-toggle-fotos span {
-        display: none;
-    }
-
-    .btn-toggle-sidebar {
-        padding: 8px 10px;
-    }
-
-    .btn-pptx {
-        padding: 8px 10px;
-    }
-
-    /* Header más compacto */
-    .header {
-        padding: 8px 10px;
-    }
-
-    .logo-nav {
-        height: 36px;
-    }
-
-    .btn-salir {
-        font-size: 12px;
-    }
-
-    .btn-volver {
-        width: 32px;
-        height: 32px;
-    }
 }
