@@ -839,3 +839,41 @@
 body.sidebar-abierto {
     overflow: hidden;
 }
+
+/* ── HEADER CON MÚLTIPLES BOTONES (vista_fotos) ── */
+.btn-toggle-fotos span {
+    display: inline;
+}
+
+@media (max-width: 600px) {
+    /* Ocultar texto, mostrar solo ícono */
+    .btn-toggle-fotos span {
+        display: none;
+    }
+
+    .btn-toggle-sidebar {
+        padding: 8px 10px;
+    }
+
+    .btn-pptx {
+        padding: 8px 10px;
+    }
+
+    /* Header más compacto */
+    .header {
+        padding: 8px 10px;
+    }
+
+    .logo-nav {
+        height: 36px;
+    }
+
+    .btn-salir {
+        font-size: 12px;
+    }
+
+    .btn-volver {
+        width: 32px;
+        height: 32px;
+    }
+}
