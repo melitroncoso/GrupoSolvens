@@ -48,20 +48,20 @@
 
 /* ── SIDEBAR (desde la derecha) ── */
 .sidebar-filtros {
-    width: 280px;
-    background: rgba(20, 20, 20, 0.98);
+    width: 300px;
+    background: rgba(15, 15, 15, 0.99);
     backdrop-filter: blur(10px);
-    border-left: 2px solid #444;
+    border-left: 1px solid #2a2a2a;
     padding: 0;
     overflow: hidden;
     position: fixed;
-    right: -300px;
+    right: -320px;
     left: auto;
     top: 0;
     height: 100vh;
     z-index: 1001;
-    transition: right 0.3s ease;
-    box-shadow: -4px 0 20px rgba(0,0,0,0.6);
+    transition: right 0.35s ease;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.7);
     display: flex;
     flex-direction: column;
 }
@@ -74,22 +74,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 20px 15px;
-    border-bottom: 2px solid #333;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid #2a2a2a;
     flex-shrink: 0;
 }
-
-/* Zona scrolleable de filtros */
-.sidebar-cuerpo {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 16px 20px;
-}
-
-.sidebar-cuerpo::-webkit-scrollbar { width: 4px; }
-.sidebar-cuerpo::-webkit-scrollbar-track { background: transparent; }
-.sidebar-cuerpo::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
 .titulo-filtros {
     font-size: 24px;
@@ -237,8 +225,8 @@
     flex-direction: column;
     gap: 10px;
     padding: 16px 20px;
-    border-top: 1px solid #333;
-    background: rgba(20, 20, 20, 0.98);
+    border-top: 1px solid #2a2a2a;
+    background: rgba(15, 15, 15, 0.99);
 }
 
 .btn-aplicar-filtros {
@@ -836,4 +824,22 @@
 }
 .sidebar-overlay.activo {
     display: block;
+}
+/* ── Zona scrolleable de filtros (wrapper agregado por filtros.js) ── */
+.sidebar-grupos {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 20px;
+    min-height: 0;
+}
+
+.sidebar-grupos::-webkit-scrollbar { width: 4px; }
+.sidebar-grupos::-webkit-scrollbar-track { background: transparent; }
+.sidebar-grupos::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+.sidebar-grupos::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* Bloquear scroll de página cuando sidebar está abierto */
+body.sidebar-abierto {
+    overflow: hidden;
 }
