@@ -1,84 +1,4 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #1a1a1a;
-    min-height: 100vh;
-    color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow-x: hidden;
-}
-
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, #1a1a1a 25%, #2a2a2a 25%, #2a2a2a 50%, #1a1a1a 50%, #1a1a1a 75%, #2a2a2a 75%, #2a2a2a);
-    background-size: 100px 100px;
-    opacity: 0.1;
-    z-index: -1;
-}
-
-/* ── HEADER ── */
-.header {
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    padding: 10px 50px;
-    display: grid;
-    grid-template-columns: 120px 1fr 120px;
-    align-items: center;
-    border-bottom: 1px solid #333;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.header-left {
-    display: flex;
-    justify-content: flex-start;
-}
-
-.header-center {
-    display: flex;
-    justify-content: center;
-}
-
-.header-right {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.logo-nav {
-    height: 55px;
-    background: white;
-    padding: 6px;
-    border-radius: 6px;
-    transition: transform 0.3s ease;
-}
-
-.logo-nav:hover {
-    transform: scale(1.05);
-}
-
-.btn-salir {
-    color: #aaaaaa;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: color 0.3s;
-}
-
-.btn-salir:hover {
-    color: #dc2626;
-}
+/* reset, body, header, logo, btn-salir → ver shared.css */
 
 /* ── BOTÓN ABRIR SIDEBAR (derecha) ── */
 .btn-toggle-sidebar {
@@ -601,16 +521,7 @@ body::before {
 }
 
 @media (max-width: 768px) {
-    .header {
-        padding: 10px 16px;
-        grid-template-columns: 1fr auto 1fr;
-    }
-
-    .logo-nav {
-        height: 42px;
-    }
-
-    .page-titulo {
+    /* header y logo → ver shared.css */    .page-titulo {
         font-size: 26px;
     }
 
@@ -637,16 +548,7 @@ body::before {
 }
 
 @media (max-width: 480px) {
-    .header {
-        grid-template-columns: 1fr auto 1fr;
-        padding: 8px 12px;
-    }
-
-    .logo-nav {
-        height: 36px;
-    }
-
-    .page-titulo {
+    /* header y logo → ver shared.css */    .page-titulo {
         font-size: 22px;
     }
 

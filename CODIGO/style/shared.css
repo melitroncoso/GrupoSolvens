@@ -23,6 +23,19 @@ body {
     scrollbar-gutter: stable;
 }
 
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, #1a1a1a 25%, #2a2a2a 25%, #2a2a2a 50%, #1a1a1a 50%, #1a1a1a 75%, #2a2a2a 75%, #2a2a2a);
+    background-size: 100px 100px;
+    opacity: 0.1;
+    z-index: -1;
+}
+
 /* ── HEADER ── */
 .header {
     background: rgba(0, 0, 0, 0.8);
