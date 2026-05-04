@@ -4,24 +4,35 @@ const sidebarFiltros   = document.getElementById('sidebarFiltros');
 
 // ── Crear wrapper scrolleable y marcar el grupo periodo ───────────────────
 (function wrapGrupos() {
-    const grupos  = sidebarFiltros.querySelectorAll('.grupo-filtro');
+    const grupos = Array.from(sidebarFiltros.querySelectorAll('.grupo-filtro'));
     if (!grupos.length) return;
 
-    // Usar el contenedor real de los grupos (puede ser .sidebar-cuerpo o el aside mismo)
-    const parent = grupos[0].parentElement;
-
+    // Insertar el wrapper justo antes de .botones-filtro (o al final del aside)
+    const botones = sidebarFiltros.querySelector('.botones-filtro');
     const wrapper = document.createElement('div');
     wrapper.className = 'sidebar-grupos';
-    parent.insertBefore(wrapper, grupos[0]);
+
+    if (botones) {
+        sidebarFiltros.insertBefore(wrapper, botones);
+    } else {
+        sidebarFiltros.appendChild(wrapper);
+    }
+
+    // Mover TODOS los grupos al wrapper, sin importar en qué nivel estaban
     grupos.forEach(g => wrapper.appendChild(g));
 
     // El primer grupo (Periodo / fechas) ocupa las 2 columnas
-    if (grupos[0]) grupos[0].classList.add('filtro-periodo');
+    grupos[0].classList.add('filtro-periodo');
 
     // Mostrar contenido de todos (sin acordeón)
     grupos.forEach(g => {
         const contenido = g.querySelector('.filtro-contenido');
         if (contenido) contenido.style.maxHeight = 'none';
+    });
+
+    // Limpiar contenedores vacíos que hayan quedado (ej: .sidebar-cuerpo sin hijos)
+    sidebarFiltros.querySelectorAll('.sidebar-cuerpo').forEach(el => {
+        if (!el.children.length) el.remove();
     });
 })();
 
