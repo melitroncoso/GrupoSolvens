@@ -1,18 +1,4 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background-color: #1a1a1a;
-    min-height: 100vh;
-    color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
-}
+/* reset y body base → ver shared.css */
 
 /* header, logo-nav → ver shared.css */
 
