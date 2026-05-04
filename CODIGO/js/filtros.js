@@ -7,9 +7,12 @@ const sidebarFiltros   = document.getElementById('sidebarFiltros');
     const grupos  = sidebarFiltros.querySelectorAll('.grupo-filtro');
     if (!grupos.length) return;
 
+    // Usar el contenedor real de los grupos (puede ser .sidebar-cuerpo o el aside mismo)
+    const parent = grupos[0].parentElement;
+
     const wrapper = document.createElement('div');
     wrapper.className = 'sidebar-grupos';
-    sidebarFiltros.insertBefore(wrapper, grupos[0]);
+    parent.insertBefore(wrapper, grupos[0]);
     grupos.forEach(g => wrapper.appendChild(g));
 
     // El primer grupo (Periodo / fechas) ocupa las 2 columnas
