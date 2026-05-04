@@ -678,7 +678,7 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
         // Validar límite de fotos según cliente (AGD = 5, resto = 3)
         const clienteRow = await query(`SELECT nombre FROM usuario WHERE id = $1`, [id_cliente]);
         const nombreCliente = clienteRow.rows[0]?.nombre?.toUpperCase() || '';
-        const maxFotos = (nombreCliente.includes('AGD') || nombreCliente.includes('DEL VALLE') || nombreCliente.includes('317')) ? 5 : 3;
+        const maxFotos = (nombreCliente.includes('AGD') || nombreCliente.includes('DEL VALLE')) ? 5 : 3;
 
         if (req.files && req.files.length > maxFotos) {
             return res.status(400).json({

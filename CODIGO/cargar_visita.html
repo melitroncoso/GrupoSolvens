@@ -239,7 +239,7 @@
             
             // Actualizar label de fotos según el cliente (AGD = 5 fotos)
             const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent;
-            const maxFotos = (nombreCliente && (nombreCliente.toUpperCase().includes('AGD') || nombreCliente.toUpperCase().includes('DEL VALLE') || nombreCliente.toUpperCase().includes('317'))) ? 5 : 3;
+            const maxFotos = (nombreCliente && (nombreCliente.toUpperCase().includes('AGD') || nombreCliente.toUpperCase().includes('DEL VALLE'))) ? 5 : 3;
             labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
             inputFotos.value = '';
             document.getElementById('previewFotos').innerHTML = '';
@@ -300,7 +300,7 @@
         inputFotos.addEventListener('change', async function () {
             const previewContenedor = document.getElementById('previewFotos');
             const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent;
-            const maxFotos = (nombreCliente && (nombreCliente.toUpperCase().includes('AGD') || nombreCliente.toUpperCase().includes('DEL VALLE') || nombreCliente.toUpperCase().includes('317'))) ? 5 : 3;
+            const maxFotos = (nombreCliente && (nombreCliente.toUpperCase().includes('AGD') || nombreCliente.toUpperCase().includes('DEL VALLE'))) ? 5 : 3;
 
             if (this.files.length > maxFotos) {
                 this.value = '';
