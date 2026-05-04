@@ -1,99 +1,4 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-/* ===== BASE ===== */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #0e0e0e;
-    min-height: 100vh;
-    color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow-x: hidden;
-}
-
-/* Fondo profesional */
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(circle at top, #222 0%, #111 40%, #0b0b0b 100%);
-    opacity: 0.7;
-    z-index: -1;
-}
-
-/* ===== HEADER ===== */
-.header {
-    background: rgba(15, 15, 15, 0.95);
-    backdrop-filter: blur(6px);
-    padding: 12px 50px;
-    display: grid;
-    grid-template-columns: 120px 1fr 120px;
-    align-items: center;
-    border-bottom: 1px solid #2a2a2a;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.header-left,
-.header-center,
-.header-right {
-    display: flex;
-    align-items: center;
-}
-
-.header-left {
-    justify-content: flex-start;
-}
-
-.header-center {
-    justify-content: center;
-}
-
-.header-right {
-    justify-content: flex-end;
-}
-
-.logo-nav {
-    height: 52px;
-    background: white;
-    padding: 6px;
-    border-radius: 6px;
-    transition: transform 0.3s ease;
-}
-
-.logo-nav:hover {
-    transform: scale(1.05);
-}
-
-.btn-volver {
-    display: flex;
-    align-items: center;
-    opacity: 0.8;
-    transition: all 0.2s;
-}
-
-.btn-volver:hover {
-    opacity: 1;
-    transform: translateX(-3px);
-}
-
-.btn-salir {
-    color: #aaaaaa;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: color 0.3s;
-}
-
-.btn-salir:hover {
-    color: #dc2626;
-}
+/* reset, body, body::before, header, logo, btn-volver, btn-salir → ver shared.css */
 
 /* ===== CONTENIDO ===== */
 .contenido {
@@ -216,7 +121,6 @@ button:active {
 }
 
 /* ===== TOAST ===== */
-/* Nota: .toast maneja visibilidad via opacity + pointer-events, sin display:none */
 #toast {
     position: fixed;
     bottom: 24px;
@@ -266,7 +170,6 @@ button:active {
     gap: 4px;
 }
 
-/* Fila */
 .sucursal-item {
     display: flex;
     align-items: center;
@@ -284,7 +187,6 @@ button:active {
     border-color: #333;
 }
 
-/* Checkbox custom */
 .sucursal-item input[type="checkbox"] {
     appearance: none;
     width: 16px;
@@ -315,50 +217,26 @@ button:active {
     transform: scale(1);
 }
 
-/* Texto */
 .sucursal-texto {
     color: #e5e5e5;
     font-size: 13px;
     font-weight: 500;
 }
 
-/* Scroll moderno */
-.lista-sucursales::-webkit-scrollbar {
-    width: 6px;
-}
-
-.lista-sucursales::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.lista-sucursales::-webkit-scrollbar-thumb {
-    background: #2a2a2a;
-    border-radius: 10px;
-}
-
-.lista-sucursales::-webkit-scrollbar-thumb:hover {
-    background: #444;
-}
+.lista-sucursales::-webkit-scrollbar { width: 6px; }
+.lista-sucursales::-webkit-scrollbar-track { background: transparent; }
+.lista-sucursales::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+.lista-sucursales::-webkit-scrollbar-thumb:hover { background: #444; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-    .header {
-        padding: 12px 18px;
-        grid-template-columns: 1fr auto 1fr;
-    }
-
-    .logo-nav {
-        height: 42px;
-    }
-
+    /* header y logo → ver shared.css */
     .contenido {
         margin: 30px auto 50px;
         padding: 0 14px;
     }
 
-    h1 {
-        font-size: 26px;
-    }
+    h1 { font-size: 26px; }
 
     .formulario {
         padding: 22px;
@@ -373,32 +251,16 @@ button:active {
 }
 
 @media (max-width: 480px) {
-    .header {
-        padding: 10px 12px;
-        grid-template-columns: 1fr auto 1fr;
-    }
+    /* header y logo → ver shared.css */
+    h1 { font-size: 22px; }
+    .subtitulo { font-size: 13px; }
 
-    .logo-nav {
-        height: 36px;
-    }
-
-    h1 {
-        font-size: 22px;
-    }
-
-    .subtitulo {
-        font-size: 13px;
-    }
-
-    input,
-    select {
+    input, select {
         font-size: 13px;
         padding: 11px 12px;
     }
 
-    .formulario {
-        padding: 16px;
-    }
+    .formulario { padding: 16px; }
 }
 
 /* ── Toast con clase .visible (páginas de eliminar) ── */
