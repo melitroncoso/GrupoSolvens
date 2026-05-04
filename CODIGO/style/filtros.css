@@ -2,34 +2,32 @@
 
 /* ── BOTÓN ABRIR SIDEBAR (derecha) ── */
 .btn-toggle-sidebar {
-    position: fixed;
-    right: 20px;
-    top: 90px;
+    position: static;
     background-color: #dc2626;
     color: #ffffff;
     border: none;
-    border-radius: 12px;
-    padding: 20px 35px;
+    border-radius: 8px;
+    padding: 8px 16px;
     display: flex;
     align-items: center;
-    gap: 15px;
-    font-size: 20px;
-    font-weight: 700;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     cursor: pointer;
     z-index: 99;
     transition: all 0.3s ease;
-    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
 }
 
 .btn-toggle-sidebar i {
-    font-size: 24px;
+    font-size: 16px;
 }
 
 .btn-toggle-sidebar:hover {
     background-color: #b91c1c;
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
 }
 
 .btn-toggle-sidebar.oculto {
@@ -521,6 +519,7 @@
         padding: 7px 12px;
         font-size: 13px;
     }
+    /* botón ya está en el header, no necesita posición fixed */
 }
 
 @media (max-width: 768px) {
@@ -529,14 +528,12 @@
     }
 
     .btn-toggle-sidebar {
-        right: 10px;
-        top: 80px;
-        padding: 14px 20px;
-        font-size: 16px;
+        padding: 7px 12px;
+        font-size: 13px;
     }
 
     .btn-toggle-sidebar i {
-        font-size: 20px;
+        font-size: 14px;
     }
 
     .barra-resultados {
@@ -556,9 +553,8 @@
     }
 
     .btn-toggle-sidebar {
-        padding: 12px 16px;
-        font-size: 14px;
-        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 13px;
     }
 }
 
