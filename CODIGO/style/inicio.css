@@ -30,58 +30,7 @@ body::before {
 }
 
 
-.header {
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    padding: 10px 20px;
-    display: grid;
-    grid-template-columns: 120px 1fr 120px;
-    align-items: center;
-    border-bottom: 1px solid #333;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.header-left {
-    display: flex;
-    justify-content: flex-start;
-}
-
-.header-center {
-    display: flex;
-    justify-content: center;
-}
-
-.header-right {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.logo-nav {
-    max-height: 55px;
-    width: auto;
-    background: white;
-    padding: 6px;
-    border-radius: 6px;
-    transition: transform 0.3s ease;
-}
-
-.logo-nav:hover {
-    transform: scale(1.05);
-}
-
-.btn-salir {
-    color: #aaaaaa;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: color 0.3s;
-}
-
-.btn-salir:hover {
-    color: #dc2626;
-}
+/* header, logo-nav, btn-salir → ver shared.css */
 
 
 .contenedor-principal {
@@ -192,38 +141,11 @@ body::before {
     text-decoration: none;
 }
 
-.footer-contacto {
-    width: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 20px;
-    text-align: center;
-    color: #666;
-    font-size: 13px;
-    border-top: 1px solid #333;
-    margin-top: auto;
-}
-
-.footer-contacto a {
-    color: #888;
-    text-decoration: none;
-}
-
-.footer-contacto a:hover {
-    color: #aaa;
-}
+/* footer-contacto → ver shared.css */
 
 
 @media (max-width: 768px) {
-    .header {
-        padding: 10px 16px;
-        grid-template-columns: 60px 1fr 60px;
-    }
-
-    .logo-nav {
-        max-height: 42px;
-    }
-
-    .contenedor-principal {
+    /* header y logo → ver shared.css */    .contenedor-principal {
         padding: 20px 16px;
     }
 
