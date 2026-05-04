@@ -52,9 +52,8 @@
     background: rgba(20, 20, 20, 0.98);
     backdrop-filter: blur(10px);
     border-left: 2px solid #444;
-    padding: 20px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    padding: 0;
+    overflow: hidden;
     position: fixed;
     right: -300px;
     left: auto;
@@ -63,6 +62,8 @@
     z-index: 1001;
     transition: right 0.3s ease;
     box-shadow: -4px 0 20px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-filtros.activo {
@@ -73,10 +74,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 15px;
+    padding: 20px 20px 15px;
     border-bottom: 2px solid #333;
+    flex-shrink: 0;
 }
+
+/* Zona scrolleable de filtros */
+.sidebar-cuerpo {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px 20px;
+}
+
+.sidebar-cuerpo::-webkit-scrollbar { width: 4px; }
+.sidebar-cuerpo::-webkit-scrollbar-track { background: transparent; }
+.sidebar-cuerpo::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
 .titulo-filtros {
     font-size: 24px;
@@ -219,11 +232,13 @@
 
 /* ── BOTONES FILTRO ── */
 .botones-filtro {
-    margin-top: 30px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding-top: 20px;
+    padding: 16px 20px;
+    border-top: 1px solid #333;
+    background: rgba(20, 20, 20, 0.98);
 }
 
 .btn-aplicar-filtros {
