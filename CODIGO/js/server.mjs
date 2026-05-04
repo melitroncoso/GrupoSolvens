@@ -286,10 +286,27 @@ app.put('/api/actualizar-clientes-sucursal', async (req, res, next) => {
 });
 
 app.delete('/api/eliminar-sucursal/:id', async (req, res, next) => {
+    const client = await getClient();
     try {
-        await query('DELETE FROM sucursal WHERE id = $1', [req.params.id]);
-        res.json({ success: true, message: 'Eliminada correctamente' });
-    } catch (e) { next(e); }
+        await client.query('BEGIN');
+        // Limpiar referencias antes de borrar
+        await client.query('DELETE FROM abastece WHERE id_sucursal = $1', [req.params.id]);
+        await client.query('DELETE FROM sucursal WHERE id = $1', [req.params.id]);
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Sucursal eliminada correctamente' });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        // FK con visita — tiene visitas registradas, no se puede borrar
+        if (e.code === '23503') {
+            return res.status(400).json({
+                success: false,
+                message: 'No se puede eliminar: la sucursal tiene visitas registradas.'
+            });
+        }
+        next(e);
+    } finally {
+        client.release();
+    }
 });
 
 

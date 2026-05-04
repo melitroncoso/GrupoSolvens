@@ -58,7 +58,6 @@
         </div>
     </main>
 
-    <script src="js/modal_confirmacion.js"></script>
     <script>
         function mostrarToast(mensaje, tipo = 'exito') {
             const t = document.getElementById('toast');
@@ -105,7 +104,7 @@
             } else {
                 data.forEach(s => {
                     // Combinamos Calle + Altura + Localidad como solicitaste
-                    selSucursal.innerHTML += `<option value="${s.ID}">${s.Calle} ${s.Altura}, ${s.Localidad}</option>`;
+                    const alt = s.Altura ? ` ${s.Altura}` : ''; selSucursal.innerHTML += `<option value="${s.ID}">${s.Localidad} — ${s.Calle}${alt}</option>`;
                 });
                 selSucursal.disabled = false;
             }
@@ -119,22 +118,30 @@
 
         // Acción de Eliminar
         btnEliminar.addEventListener('click', async () => {
-            const confirmar = await mostrarConfirmacion({
-                titulo: '¿Eliminar Sucursal?',
-                mensaje: '¿Está seguro de que desea eliminar esta sucursal de forma permanente?',
-            });
-
+            const nombreSucursal = selSucursal.options[selSucursal.selectedIndex].text;
+            const confirmar = confirm(`¿Eliminar la sucursal "${nombreSucursal}"? Esta acción no se puede deshacer.`);
             if (!confirmar) return;
 
-            const id = selSucursal.value;
-            const res = await fetch(`${URL_BASE}/eliminar-sucursal/${id}`, { method: 'DELETE' });
-            const result = await res.json();
+            btnEliminar.disabled = true;
+            btnEliminar.textContent = 'Eliminando...';
 
-            if (result.success) {
-                mostrarToast(result.message, "exito");
-                location.reload(); // Recargar para limpiar filtros
-            } else {
-                mostrarToast(result.message, "error");
+            try {
+                const id = selSucursal.value;
+                const res = await fetch(`${URL_BASE}/eliminar-sucursal/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+
+                if (result.success) {
+                    mostrarToast(result.message || 'Eliminada correctamente', 'exito');
+                    setTimeout(() => location.reload(), 1800);
+                } else {
+                    mostrarToast(result.message || 'Error al eliminar', 'error');
+                    btnEliminar.disabled = false;
+                    btnEliminar.textContent = 'Eliminar Sucursal';
+                }
+            } catch {
+                mostrarToast('Error de conexión con el servidor', 'error');
+                btnEliminar.disabled = false;
+                btnEliminar.textContent = 'Eliminar Sucursal';
             }
         });
     </script>
