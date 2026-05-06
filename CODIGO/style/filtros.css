@@ -108,10 +108,9 @@
     overflow-x: hidden;
     padding: 16px;
     min-height: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-    align-content: start;
 }
 
 /* Zona scrolleable — 1 columna (vista_fotos_admin, tabla_visitas, tabla_todo_admin) */
@@ -855,7 +854,6 @@
     }
 
     .sidebar-grupos {
-        grid-template-columns: 1fr;
         padding: 12px;
         gap: 8px;
     }
