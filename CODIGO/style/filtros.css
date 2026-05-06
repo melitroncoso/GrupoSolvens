@@ -114,9 +114,24 @@
     align-content: start;
 }
 
-.sidebar-grupos::-webkit-scrollbar { width: 4px; }
-.sidebar-grupos::-webkit-scrollbar-track { background: transparent; }
-.sidebar-grupos::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+/* Zona scrolleable — 1 columna (vista_fotos_admin, tabla_visitas, tabla_todo_admin) */
+.sidebar-cuerpo {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-grupos::-webkit-scrollbar,
+.sidebar-cuerpo::-webkit-scrollbar { width: 4px; }
+.sidebar-grupos::-webkit-scrollbar-track,
+.sidebar-cuerpo::-webkit-scrollbar-track { background: transparent; }
+.sidebar-grupos::-webkit-scrollbar-thumb,
+.sidebar-cuerpo::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
 
 /* ── GRUPO FILTRO: card compacta ── */
 .grupo-filtro {
