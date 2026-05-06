@@ -188,13 +188,16 @@ app.get('/api/subzonas', async (req, res, next) => {
 app.get('/api/buscar-sucursales', async (req, res, next) => {
     const { id_cadena, id_subzona } = req.query;
     try {
-        let sql = 'SELECT id AS "ID", calle AS "Calle", altura AS "Altura", localidad AS "Localidad" FROM sucursal WHERE id_cadena = $1 ORDER BY localidad, calle';
+        // CORRECCIÓN: el AND de subzona debe ir ANTES del ORDER BY
+        let sql = 'SELECT id AS "ID", calle AS "Calle", altura AS "Altura", localidad AS "Localidad" FROM sucursal WHERE id_cadena = $1';
         const params = [id_cadena];
 
         if (id_subzona && id_subzona !== 'undefined' && id_subzona !== 'null' && id_subzona !== '') {
             sql += ' AND id_subzona = $2';
             params.push(id_subzona);
         }
+
+        sql += ' ORDER BY localidad, calle';
 
         const result = await query(sql, params);
         res.json(result.rows);
