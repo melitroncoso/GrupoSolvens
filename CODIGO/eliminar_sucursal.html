@@ -58,6 +58,8 @@
         </div>
     </main>
 
+    <div class="toast" id="toast"></div>
+
     <script>
         function mostrarToast(mensaje, tipo = 'exito') {
             const t = document.getElementById('toast');
@@ -68,55 +70,93 @@
         }
 
         const URL_BASE = '/api';
-        const selCadena = document.getElementById('select-cadena');
-        const selSubzona = document.getElementById('select-subzona');
+        const selCadena   = document.getElementById('select-cadena');
+        const selSubzona  = document.getElementById('select-subzona');
         const selSucursal = document.getElementById('select-sucursal');
         const btnEliminar = document.getElementById('btn-eliminar');
 
-        // Inicialización: Cargar Cadenas
-        document.addEventListener("DOMContentLoaded", async () => {
-            const res = await fetch(`${URL_BASE}/cadenas`);
-            const data = await res.json();
-            data.forEach(c => selCadena.innerHTML += `<option value="${c.ID}">${c.Nombre}</option>`);
-        });
-
-        // Evento 1: Al elegir Cadena, cargar Subzonas y habilitar
-        selCadena.addEventListener('change', async () => {
-            const res = await fetch(`${URL_BASE}/subzonas`);
-            const data = await res.json();
+        // ── Helpers de reset ──────────────────────────────────────────────
+        function resetSubzona() {
             selSubzona.innerHTML = '<option value="" disabled selected>2. Seleccione Subzona</option>';
-            data.forEach(s => selSubzona.innerHTML += `<option value="${s.ID}">${s.Nombre}</option>`);
-            selSubzona.disabled = false;
+            selSubzona.disabled = true;
+            resetSucursal();
+        }
 
-            // Resetear siguientes pasos
+        function resetSucursal() {
+            selSucursal.innerHTML = '<option value="" disabled selected>3. Seleccione la Sucursal</option>';
             selSucursal.disabled = true;
             btnEliminar.disabled = true;
-        });
+        }
 
-        // Evento 2: Al elegir Subzona, buscar sucursales filtradas
-        selSubzona.addEventListener('change', async () => {
-            const res = await fetch(`${URL_BASE}/buscar-sucursales?id_cadena=${selCadena.value}&id_subzona=${selSubzona.value}`);
-            const data = await res.json();
-
-            selSucursal.innerHTML = '<option value="" disabled selected>3. Seleccione la Sucursal</option>';
-            if (data.length === 0) {
-                selSucursal.innerHTML = '<option value="" disabled>No hay sucursales en esta zona</option>';
-            } else {
-                data.forEach(s => {
-                    // Combinamos Calle + Altura + Localidad como solicitaste
-                    const alt = s.Altura ? ` ${s.Altura}` : ''; selSucursal.innerHTML += `<option value="${s.ID}">${s.Localidad} — ${s.Calle}${alt}</option>`;
+        // ── Inicialización: Cargar Cadenas ────────────────────────────────
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                const res = await fetch(`${URL_BASE}/cadenas`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                data.forEach(c => {
+                    selCadena.innerHTML += `<option value="${c.ID}">${c.Nombre}</option>`;
                 });
-                selSucursal.disabled = false;
+            } catch (err) {
+                mostrarToast('Error al cargar las cadenas', 'error');
+                console.error('Error cadenas:', err);
             }
-            btnEliminar.disabled = true;
         });
 
-        // Evento 3: Al elegir Sucursal, habilitar botón
+        // ── Evento 1: Cadena → cargar Subzonas filtradas ──────────────────
+        selCadena.addEventListener('change', async () => {
+            resetSubzona();
+            try {
+                // CORRECCIÓN: se filtra por id_cadena para traer solo las subzonas correspondientes
+                const res = await fetch(`${URL_BASE}/subzonas?id_cadena=${selCadena.value}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    selSubzona.innerHTML = '<option value="" disabled selected>No hay subzonas para esta cadena</option>';
+                } else {
+                    selSubzona.innerHTML = '<option value="" disabled selected>2. Seleccione Subzona</option>';
+                    data.forEach(s => {
+                        selSubzona.innerHTML += `<option value="${s.ID}">${s.Nombre}</option>`;
+                    });
+                    selSubzona.disabled = false;
+                }
+            } catch (err) {
+                mostrarToast('Error al cargar las subzonas', 'error');
+                console.error('Error subzonas:', err);
+            }
+        });
+
+        // ── Evento 2: Subzona → buscar Sucursales filtradas ───────────────
+        selSubzona.addEventListener('change', async () => {
+            resetSucursal();
+            try {
+                const res = await fetch(`${URL_BASE}/buscar-sucursales?id_cadena=${selCadena.value}&id_subzona=${selSubzona.value}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    selSucursal.innerHTML = '<option value="" disabled selected>No hay sucursales en esta zona</option>';
+                } else {
+                    selSucursal.innerHTML = '<option value="" disabled selected>3. Seleccione la Sucursal</option>';
+                    data.forEach(s => {
+                        const alt = s.Altura ? ` ${s.Altura}` : '';
+                        selSucursal.innerHTML += `<option value="${s.ID}">${s.Localidad} — ${s.Calle}${alt}</option>`;
+                    });
+                    selSucursal.disabled = false;
+                }
+            } catch (err) {
+                mostrarToast('Error al cargar las sucursales', 'error');
+                console.error('Error sucursales:', err);
+            }
+        });
+
+        // ── Evento 3: Sucursal → habilitar botón ─────────────────────────
         selSucursal.addEventListener('change', () => {
-            btnEliminar.disabled = false;
+            btnEliminar.disabled = selSucursal.value === '';
         });
 
-        // Acción de Eliminar
+        // ── Acción: Eliminar ──────────────────────────────────────────────
         btnEliminar.addEventListener('click', async () => {
             const nombreSucursal = selSucursal.options[selSucursal.selectedIndex].text;
             const confirmar = confirm(`¿Eliminar la sucursal "${nombreSucursal}"? Esta acción no se puede deshacer.`);
@@ -128,6 +168,7 @@
             try {
                 const id = selSucursal.value;
                 const res = await fetch(`${URL_BASE}/eliminar-sucursal/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const result = await res.json();
 
                 if (result.success) {
@@ -138,16 +179,14 @@
                     btnEliminar.disabled = false;
                     btnEliminar.textContent = 'Eliminar Sucursal';
                 }
-            } catch {
+            } catch (err) {
                 mostrarToast('Error de conexión con el servidor', 'error');
+                console.error('Error eliminar:', err);
                 btnEliminar.disabled = false;
                 btnEliminar.textContent = 'Eliminar Sucursal';
             }
         });
     </script>
-
-
-    <div class="toast" id="toast"></div>
 
 </body>
 
