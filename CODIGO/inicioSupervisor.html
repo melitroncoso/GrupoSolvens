@@ -48,9 +48,9 @@
 
     <script>
         // Verificar sesión
-        const tipo = Number(localStorage.getItem('tipoUsuario'));
-        const nombre = localStorage.getItem('nombre_usuario') || '';
-        const idSupervisor = localStorage.getItem('id_usuario');
+        const tipo = Number(sessionStorage.getItem('tipoUsuario'));
+        const nombre = sessionStorage.getItem('nombreUsuario') || '';
+        const idSupervisor = sessionStorage.getItem('id_usuario');
 
         // Redirigir si no es supervisor
         // El tipo se obtiene del login — ajustá el número si varía en tu BD
