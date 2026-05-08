@@ -504,6 +504,18 @@ app.post('/login', async (req, res, next) => {
 // CATEGORÍAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+app.get('/api/categorias-stock', async (req, res, next) => {
+    const { id_cliente } = req.query;
+    if (!id_cliente) return res.status(400).json({ error: 'Falta id_cliente' });
+    try {
+        const result = await query(
+            `SELECT id, categoria FROM categoria WHERE id_cliente = $1 ORDER BY categoria`,
+            [id_cliente]
+        );
+        res.json(result.rows);
+    } catch (e) { next(e); }
+});
+
 app.get('/api/categorias', async (req, res, next) => {
     try {
         const result = await query('SELECT id AS "ID", categoria AS "Categoria" FROM categoria ORDER BY categoria');
@@ -737,6 +749,19 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
                 await client.query(
                     'INSERT INTO imagen (ruta_imagen, id_visita, estado) VALUES ($1,$2,$3)',
                     [urlPublica, vId, (nombreCliente.includes('DEL VALLE') || nombreCliente.includes('317')) ? 'Aprobado' : 'Pendiente']
+                );
+            }
+        }
+
+        // D. Guardar stock por categoría (si viene)
+        const stockData = req.body.stock ? JSON.parse(req.body.stock) : {};
+        for (const [idCat, idTipoStock] of Object.entries(stockData)) {
+            if (idTipoStock) {
+                await client.query(
+                    `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
+                    [vId, parseInt(idCat), parseInt(idTipoStock)]
                 );
             }
         }
