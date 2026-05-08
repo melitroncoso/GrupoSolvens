@@ -8,7 +8,7 @@ import bcrypt from 'bcrypt';
 import https from 'https';
 import http from 'http';
 import fs from 'fs';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import PptxGenJS from 'pptxgenjs';
 import { query, getClient } from './conexion.mjs';
 
@@ -1276,13 +1276,43 @@ app.delete('/api/eliminar-visita/:id', async (req, res, next) => {
     const client = await getClient();
     try {
         await client.query('BEGIN');
+        
+        // Obtener rutas de imágenes antes de borrarlas
+        const imgs = await client.query('SELECT ruta_imagen FROM imagen WHERE id_visita = $1', [id]);
+        
+        // Borrar dependencias en BD
         await client.query('DELETE FROM carga WHERE id_visita = $1', [id]);
+        // Intentar borrar de visita_stock si la tabla existe/aplica
+        try {
+            await client.query('DELETE FROM visita_stock WHERE id_visita = $1', [id]);
+        } catch (err) {
+            // Ignorar si la tabla no existe o no tiene ese campo
+        }
         await client.query('DELETE FROM imagen WHERE id_visita = $1', [id]);
+        
         const result = await client.query('DELETE FROM visita WHERE id = $1', [id]);
         await client.query('COMMIT');
+        
         if (result.rowCount === 0)
             return res.status(404).json({ success: false, message: 'Visita no encontrada.' });
-        res.json({ success: true, message: 'Visita eliminada correctamente.' });
+            
+        // Borrar del almacenamiento R2
+        for (const img of imgs.rows) {
+            if (img.ruta_imagen) {
+                try {
+                    let filename = img.ruta_imagen.substring(img.ruta_imagen.lastIndexOf('/') + 1);
+                    if (filename.includes('?')) filename = filename.split('?')[0];
+                    await r2.send(new DeleteObjectCommand({
+                        Bucket: R2_BUCKET,
+                        Key: filename
+                    }));
+                } catch (err) {
+                    console.error("Error al eliminar imagen de R2:", err);
+                }
+            }
+        }
+        
+        res.json({ success: true, message: 'Visita y todos sus registros eliminados correctamente.' });
     } catch (e) {
         await client.query('ROLLBACK');
         next(e);
