@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carga de Visita - Solvens</title>
     <link rel="icon" href="../IMG/logo2.jpg" type="image/jpg">
+    <link rel="stylesheet" href="style/shared.css">
     <link rel="stylesheet" href="style/carga_visitas.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -131,7 +132,7 @@
         let productosOriginales = [];
         let datosIngresados = {};
         let todasLasSucursales = [];
-        let stockSeleccionado = {}; // id_categoria -> id_tipo_stock // lista completa luego de cargar cliente
+        let stockSeleccionado = {}; // lista completa luego de cargar cliente
 
         // --- DOM ---
         const clienteSel  = document.getElementById('cliente');
@@ -150,6 +151,70 @@
         */
 
         // ── HELPERS ──────────────────────────────────────────────────────────────
+
+        // ── STOCK ────────────────────────────────────────────────────────────────
+        async function cargarCategoriasStock(idCliente) {
+            try {
+                const res = await fetch(`/api/categorias-stock?id_cliente=${idCliente}`);
+                const cats = await res.json();
+                const seccion = document.getElementById('seccionStock');
+                const lista = document.getElementById('listaStock');
+
+                if (!cats || cats.length === 0) {
+                    seccion.style.display = 'none';
+                    return;
+                }
+
+                lista.innerHTML = '';
+                stockSeleccionado = {};
+
+                const niveles = [
+                    { id: 1, label: 'Sin stock', color: '#dc2626' },
+                    { id: 2, label: 'Poco',      color: '#f59e0b' },
+                    { id: 3, label: 'Buen stock', color: '#3b82f6' },
+                    { id: 4, label: 'Mucho',     color: '#22c55e' }
+                ];
+
+                cats.forEach(cat => {
+                    const div = document.createElement('div');
+                    div.style.cssText = 'padding:14px 0;border-bottom:1px solid #2a2a2a;';
+                    div.innerHTML = `
+                        <p style="font-size:13px;color:#e0e0e0;margin-bottom:10px;font-weight:500;">${cat.categoria}</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            ${niveles.map(n => `
+                                <div class="stock-btn" data-catid="${cat.id}" data-nivel="${n.id}"
+                                    onclick="seleccionarStock(${cat.id}, ${n.id})"
+                                    style="flex:1;min-width:60px;text-align:center;padding:10px 4px;
+                                           border-radius:8px;border:2px solid #333;background:#1a1a1a;
+                                           font-size:12px;color:#aaa;cursor:pointer;transition:.2s;user-select:none;">
+                                    ${n.label}
+                                </div>`).join('')}
+                        </div>`;
+                    lista.appendChild(div);
+                });
+
+                seccion.style.display = 'block';
+            } catch(err) {
+                console.error('Error cargando categorías stock:', err);
+            }
+        }
+
+        window.seleccionarStock = (idCat, idNivel) => {
+            stockSeleccionado[idCat] = idNivel;
+            const colores = { 1:'#dc2626', 2:'#f59e0b', 3:'#3b82f6', 4:'#22c55e' };
+            document.querySelectorAll(`.stock-btn[data-catid="${idCat}"]`).forEach(btn => {
+                const nivel = parseInt(btn.dataset.nivel);
+                if (nivel === idNivel) {
+                    btn.style.borderColor = colores[nivel];
+                    btn.style.background = colores[nivel] + '22';
+                    btn.style.color = '#fff';
+                } else {
+                    btn.style.borderColor = '#333';
+                    btn.style.background = '#1a1a1a';
+                    btn.style.color = '#aaa';
+                }
+            });
+        };
 
         function poblarCadenas(sucursales) {
             const cadenas = [...new Map(sucursales.map(s => [s.Cadena, s.Cadena])).values()].sort();
@@ -234,7 +299,7 @@
             // Cargar sección de stock si el cliente es Del Valle
             const nomCli = clienteSel.options[clienteSel.selectedIndex]?.textContent || '';
             if (nomCli.toUpperCase().includes('DEL VALLE') || nomCli.includes('317')) {
-                await cargarCategoriasStock(clienteSel.value);
+                cargarCategoriasStock(clienteSel.value);
             } else {
                 document.getElementById('seccionStock').style.display = 'none';
                 document.getElementById('listaStock').innerHTML = '';
@@ -534,76 +599,6 @@
                 mostrarToastError('Error de conexión con el servidor.');
             }
         });
-
-        // ── STOCK CATEGORÍAS ──
-        async function cargarCategoriasStock(idCliente) {
-            try {
-                const res = await fetch(`/api/categorias-stock?id_cliente=${idCliente}`);
-                const cats = await res.json();
-                const seccion = document.getElementById('seccionStock');
-                const lista = document.getElementById('listaStock');
-
-                if (!cats || cats.length === 0) {
-                    seccion.style.display = 'none';
-                    return;
-                }
-
-                lista.innerHTML = '';
-                stockSeleccionado = {};
-
-                const niveles = [
-                    { id: 1, label: 'Sin stock',   icon: '✗', color: '#dc2626' },
-                    { id: 2, label: 'Poco',        icon: '▂',  color: '#f59e0b' },
-                    { id: 3, label: 'Buen stock',  icon: '▆',  color: '#3b82f6' },
-                    { id: 4, label: 'Mucho',       icon: '█',  color: '#22c55e' }
-                ];
-
-                cats.forEach(cat => {
-                    const div = document.createElement('div');
-                    div.style.cssText = 'padding:14px 0;border-bottom:1px solid #2a2a2a;';
-                    div.innerHTML = `
-                        <p style="font-size:13px;color:#e0e0e0;margin-bottom:10px;font-weight:500;">${cat.categoria}</p>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            ${niveles.map(n => `
-                                <label style="flex:1;min-width:60px;cursor:pointer;">
-                                    <input type="radio" name="stock_${cat.id}" value="${n.id}"
-                                        style="display:none;"
-                                        onchange="seleccionarStock(${cat.id}, ${n.id}, this)">
-                                    <div class="stock-btn" data-catid="${cat.id}" data-nivel="${n.id}"
-                                        style="text-align:center;padding:8px 4px;border-radius:8px;border:2px solid #333;
-                                               background:#1a1a1a;font-size:11px;color:#aaa;transition:.2s;user-select:none;"
-                                        onclick="this.previousElementSibling.click()">
-                                        <div style="font-size:16px;">${n.icon}</div>
-                                        <div>${n.label}</div>
-                                    </div>
-                                </label>`).join('')}
-                        </div>`;
-                    lista.appendChild(div);
-                });
-
-                seccion.style.display = 'block';
-            } catch(err) {
-                console.error('Error cargando categorías stock:', err);
-            }
-        }
-
-        window.seleccionarStock = (idCat, idNivel, input) => {
-            stockSeleccionado[idCat] = idNivel;
-            // Actualizar estilos de los botones de esa categoría
-            document.querySelectorAll(`.stock-btn[data-catid="${idCat}"]`).forEach(btn => {
-                const nivel = parseInt(btn.dataset.nivel);
-                const colores = { 1:'#dc2626', 2:'#f59e0b', 3:'#3b82f6', 4:'#22c55e' };
-                if (nivel === idNivel) {
-                    btn.style.borderColor = colores[nivel];
-                    btn.style.background = colores[nivel] + '22';
-                    btn.style.color = '#fff';
-                } else {
-                    btn.style.borderColor = '#333';
-                    btn.style.background = '#1a1a1a';
-                    btn.style.color = '#aaa';
-                }
-            });
-        };
 
         // ── TOAST ÉXITO ──
         function mostrarToast() {
