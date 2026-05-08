@@ -156,11 +156,12 @@
                             <th data-col="Repositor">Repositor <span class="sort-icon">↕</span></th>
                             <th data-col="Sucursal">Sucursal <span class="sort-icon">↕</span></th>
                             <th data-col="Cliente">Cliente <span class="sort-icon">↕</span></th>
+                            <th style="width: 80px; text-align: center;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoTabla">
                         <tr>
-                            <td colspan="4">
+                            <td colspan="5">
                                 <div class="estado-tabla">
                                     <div class="spinner"></div>
                                     <p>Cargando datos...</p>
@@ -334,7 +335,7 @@
             conteoEl.textContent = total;
 
             if (total === 0) {
-                cuerpo.innerHTML = `<tr><td colspan="4"><div class="estado-tabla">
+                cuerpo.innerHTML = `<tr><td colspan="5"><div class="estado-tabla">
             <i class="fas fa-search" style="color:#3b82f6;opacity:0.5;font-size:48px;"></i>
             <p>No se encontraron registros con los filtros aplicados.</p>
         </div></td></tr>`;
@@ -356,6 +357,11 @@
                 <td>${r.Repositor || '-'}</td>
                 <td>${r.Sucursal || '-'}</td>
                 <td>${r.Cliente || '-'}</td>
+                <td style="text-align: center;">
+                    <button class="btn-rechazar" onclick="eliminarVisita(${r.ID_Visita})" title="Eliminar Visita" style="border:none;background:none;cursor:pointer;color:#dc2626;font-size:20px;padding:5px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
             </tr>`;
             }).join('');
 
@@ -494,7 +500,24 @@
         }
 
         function mostrarError() {
-            cuerpo.innerHTML = `<tr><td colspan="4"><div class="estado-tabla"><i class="fas fa-exclamation-circle" style="color:#dc2626;font-size:48px;"></i><p>Error al conectar con el servidor.</p></div></td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="5"><div class="estado-tabla"><i class="fas fa-exclamation-circle" style="color:#dc2626;font-size:48px;"></i><p>Error al conectar con el servidor.</p></div></td></tr>`;
+        }
+
+        async function eliminarVisita(idVisita) {
+            if (!confirm('¿Está seguro que desea eliminar esta visita y todos sus registros (imágenes y cargas)? Esta acción no se puede deshacer.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/eliminar-visita/${idVisita}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    mostrarToast(data.message, 'success');
+                    cargarDatos();
+                } else {
+                    mostrarToast(data.message || 'Error al eliminar', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                mostrarToast('Error de conexión', 'error');
+            }
         }
     </script>
 </body>

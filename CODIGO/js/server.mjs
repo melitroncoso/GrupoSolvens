@@ -1245,6 +1245,26 @@ app.get('/api/visitas', async (req, res, next) => {
     } catch (e) { next(e); }
 });
 
+app.delete('/api/eliminar-visita/:id', async (req, res, next) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID inválido' });
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        await client.query('DELETE FROM carga WHERE id_visita = $1', [id]);
+        await client.query('DELETE FROM imagen WHERE id_visita = $1', [id]);
+        const result = await client.query('DELETE FROM visita WHERE id = $1', [id]);
+        await client.query('COMMIT');
+        if (result.rowCount === 0)
+            return res.status(404).json({ success: false, message: 'Visita no encontrada.' });
+        res.json({ success: true, message: 'Visita eliminada correctamente.' });
+    } catch (e) {
+        await client.query('ROLLBACK');
+        next(e);
+    } finally {
+        client.release();
+    }
+});
 
 app.get('/api/visitas-pendientes', async (req, res, next) => {
     try {
@@ -1477,6 +1497,10 @@ app.get('/api/visitas-semana-cliente', async (req, res, next) => {
                           AND v2.id_cliente = $1
                           AND v2.fecha >= date_trunc('week', CURRENT_DATE)
                           AND v2.fecha < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+                          AND NOT (
+                              EXISTS (SELECT 1 FROM imagen im WHERE im.id_visita = v2.id)
+                              AND NOT EXISTS (SELECT 1 FROM imagen im WHERE im.id_visita = v2.id AND im.estado != 'Rechazado')
+                          )
                    ) AS "VisitasSemanales"
             FROM abastece a
             JOIN sucursal s ON a.id_sucursal = s.id
@@ -1517,6 +1541,7 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
                         WHERE v2.id_sucursal = s.id
                           AND v2.id_cliente = $1
                           AND DATE_TRUNC('month', v2.fecha) = DATE_TRUNC('month', CURRENT_DATE)
+                          AND im.estado != 'Rechazado'
                    ) THEN 1 ELSE 0 END AS "TieneImagenes",
                    (
                         SELECT u.nombre FROM visita v3
@@ -1525,6 +1550,7 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
                         WHERE v3.id_sucursal = s.id
                           AND v3.id_cliente = $1
                           AND DATE_TRUNC('month', v3.fecha) = DATE_TRUNC('month', CURRENT_DATE)
+                          AND im2.estado != 'Rechazado'
                         ORDER BY v3.fecha DESC
                         LIMIT 1
                    ) AS "Repositor"
