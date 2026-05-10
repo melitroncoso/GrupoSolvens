@@ -133,6 +133,7 @@
         let datosIngresados = {};
         let todasLasSucursales = [];
         let stockSeleccionado = {}; // lista completa luego de cargar cliente
+        let totalCategorias = 0;   // cantidad de categorías a validar en submit
 
         // --- DOM ---
         const clienteSel  = document.getElementById('cliente');
@@ -167,6 +168,7 @@
 
                 lista.innerHTML = '';
                 stockSeleccionado = {};
+                totalCategorias = cats.length;
 
                 const niveles = [
                     { id: 1, label: 'Sin stock', color: '#dc2626' },
@@ -296,15 +298,8 @@
 
             poblarCadenas(sucursales);
 
-            // Cargar sección de stock si el cliente es Del Valle
-            const nomCli = clienteSel.options[clienteSel.selectedIndex]?.textContent || '';
-            if (nomCli.toUpperCase().includes('DEL VALLE') || nomCli.includes('317')) {
-                cargarCategoriasStock(clienteSel.value);
-            } else {
-                document.getElementById('seccionStock').style.display = 'none';
-                document.getElementById('listaStock').innerHTML = '';
-                stockSeleccionado = {};
-            }
+            // Cargar sección de stock según lo que devuelva el backend para este cliente
+            cargarCategoriasStock(clienteSel.value);
 
             // Preseleccionar cadena si viene del localStorage
             const cadenaGuardada = sessionStorage.getItem('cadena_sel');
@@ -568,6 +563,13 @@
 
             if (archivos.length === 0) {
                 mostrarToastError('Cargá al menos una foto.');
+                return;
+            }
+
+            // Validar que todas las categorías de stock estén seleccionadas (solo Del Valle)
+            if (totalCategorias > 0 && Object.keys(stockSeleccionado).length < totalCategorias) {
+                const faltantes = totalCategorias - Object.keys(stockSeleccionado).length;
+                mostrarToastError(`Completá el stock de todas las categorías. Faltan ${faltantes}.`);
                 return;
             }
 
