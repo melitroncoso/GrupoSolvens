@@ -126,6 +126,20 @@
                 </div>
             </div>
 
+            <!-- Repositor -->
+            <div class="grupo-filtro">
+                <div class="filtro-header">
+                    <label class="label-filtro">Repositor</label>
+                    <i class="fas fa-chevron-down icono-toggle"></i>
+                </div>
+                <div class="filtro-contenido">
+                    <p class="descripcion-filtro">Seleccione el repositor:</p>
+                    <select class="select-filtro" id="filtroRepositor">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+
             </div><!-- /sidebar-cuerpo -->
 
             <div class="botones-filtro">
@@ -249,6 +263,7 @@
                 poblarSelect('filtroCadena', data.cadenas || []);
                 poblarSelect('filtroSucursal', data.sucursales || []);
                 poblarSelect('filtroRegion', data.regiones || []);
+                poblarSelect('filtroRepositor', data.repositores || []);
 
                 // 2. Cargar Clientes
                 const resCli = await fetch(`${API_BASE}/clientes-activos`);
@@ -281,6 +296,7 @@
             const sucursal = document.getElementById('filtroSucursal').value;
             const region  = document.getElementById('filtroRegion').value;
             const cliente = document.getElementById('filtroCliente').value;
+            const repositor = document.getElementById('filtroRepositor').value;
 
             if (fDesde)   p.set('fecha_desde', fDesde);
             if (fHasta)   p.set('fecha_hasta', fHasta);
@@ -288,6 +304,7 @@
             if (sucursal) p.set('id_sucursal', sucursal);
             if (region)   p.set('id_region', region);
             if (cliente)  p.set('id_cliente', cliente);
+            if (repositor) p.set('id_repo', repositor);
 
             return p;
         }
@@ -452,7 +469,8 @@
             id_sucursal: 'Boca',
             id_canal: 'Canal',
             id_region: 'Región',
-            id_cliente: 'Cliente'
+            id_cliente: 'Cliente',
+            id_repo: 'Repositor'
         };
 
         function actualizarTags(params) {
@@ -471,7 +489,7 @@
 
         document.getElementById('btnAplicar').addEventListener('click', cargarDatos);
         document.getElementById('btnLimpiar').addEventListener('click', () => {
-            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroRegion', 'filtroCliente']
+            ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroRegion', 'filtroCliente', 'filtroRepositor']
                 .forEach(id => document.getElementById(id).value = '');
             cargarDatos();
         });

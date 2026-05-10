@@ -1263,6 +1263,7 @@ app.get('/api/visitas', async (req, res, next) => {
         if (id_sucursal) { sql += ` AND v.id_sucursal = $${idx++}`; params.push(id_sucursal); }
         if (id_cliente)  { sql += ` AND v.id_cliente = $${idx++}`; params.push(id_cliente); }
         if (id_region)   { sql += ` AND z.id = $${idx++}`; params.push(id_region); }
+        if (req.query.id_repo) { sql += ` AND v.id_repo = $${idx++}`; params.push(req.query.id_repo); }
 
         sql += ' ORDER BY v.fecha DESC';
         const result = await query(sql, params);
@@ -1425,19 +1426,21 @@ app.get('/api/sucursales-lista', async (req, res, next) => {
 
 app.get('/api/filtros-opciones', async (req, res, next) => {
     try {
-        const [cadenas, sucursales, canales, regiones, categorias] = await Promise.all([
+        const [cadenas, sucursales, canales, regiones, categorias, repositores] = await Promise.all([
             query('SELECT id AS "ID", nombre AS "Nombre" FROM cadena ORDER BY nombre'),
             query(`SELECT id AS "ID", calle || COALESCE(' ' || CAST(altura AS VARCHAR), ' S/N') AS "Nombre" FROM sucursal ORDER BY calle`),
             query('SELECT id AS "ID", tipo AS "Nombre" FROM tipo_cadena ORDER BY tipo'),
             query('SELECT id AS "ID", nombre AS "Nombre" FROM zona ORDER BY nombre'),
             query('SELECT id AS "ID", categoria AS "Nombre" FROM categoria ORDER BY categoria'),
+            query(`SELECT u.id AS "ID", u.nombre AS "Nombre" FROM usuario u JOIN tipo_usuario t ON u.id_tipo_usuario = t.id WHERE t.tipo = 'Repositor' ORDER BY u.nombre`)
         ]);
         res.json({
             cadenas: cadenas.rows,
             sucursales: sucursales.rows,
             canales: canales.rows,
             regiones: regiones.rows,
-            categorias: categorias.rows
+            categorias: categorias.rows,
+            repositores: repositores.rows
         });
     } catch (e) { next(e); }
 });
@@ -1477,7 +1480,7 @@ const BASE_SELECT_REPORTE = `
 `;
 
 function buildFiltrosReporte(reqQuery, params, extraWhere = '') {
-    const { fecha_desde, fecha_hasta, id_cadena, id_sucursal, id_canal, id_region, id_categoria, id_cliente } = reqQuery;
+    const { fecha_desde, fecha_hasta, id_cadena, id_sucursal, id_canal, id_region, id_categoria, id_cliente, id_repo } = reqQuery;
     const conds = [];
     if (extraWhere) conds.push(extraWhere);
 
@@ -1489,6 +1492,7 @@ function buildFiltrosReporte(reqQuery, params, extraWhere = '') {
     if (id_region)    { conds.push(`z.id = $${params.push(id_region)}`); }
     if (id_categoria) { conds.push(`cat.id = $${params.push(id_categoria)}`); }
     if (id_cliente)   { conds.push(`v.id_cliente = $${params.push(id_cliente)}`); }
+    if (id_repo)      { conds.push(`v.id_repo = $${params.push(id_repo)}`); }
 
     return conds.length > 0 ? 'WHERE ' + conds.join(' AND ') : '';
 }
