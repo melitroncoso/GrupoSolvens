@@ -468,6 +468,17 @@
             }
         }
 
+        async function getImgDataWithDimensions(url) {
+            const dataUrl = await imgUrlToBase64(url);
+            if (!dataUrl) return null;
+            return await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ data: dataUrl, width: img.width, height: img.height });
+                img.onerror = () => resolve(null);
+                img.src = dataUrl;
+            });
+        }
+
         async function generarReportePPTX() {
             const btn = document.getElementById('btnExportarPPTX');
             const originalHtml = btn.innerHTML;
@@ -587,19 +598,23 @@
                         }
 
                         const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                        slide.addText(`${v.cadena} | ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                        slide.addText(`Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
                             x: 1.5, y: 0.05, w: 8.3, h: 0.5,
                             fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                         });
 
-                        // Título PDV
-                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                        // Título Cadena y PDV
+                        slide.addText(v.cadena, {
                             x: 0.5, y: 0.7, w: 9, h: 0.4,
-                            fontSize: 20, color: 'DC2626', bold: true
+                            fontSize: 24, color: 'DC2626', bold: true
+                        });
+                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                            x: 0.5, y: 1.1, w: 9, h: 0.3,
+                            fontSize: 16, color: '666666'
                         });
 
                         // Layout dinámico centrado para 1, 2 o 3 imágenes
-                        const areaY = 1.3, areaW = 9, areaH = 4.1;
+                        const areaY = 1.6, areaW = 9, areaH = 3.8;
                         // const count and imgs already defined above
                         const gutter = 0.3; // Espaciado entre fotos
 
@@ -617,13 +632,29 @@
                         }
 
                         for (let i = 0; i < count; i++) {
-                            const imgB64 = await imgUrlToBase64(imgs[i].ruta);
-                            if (imgB64) {
+                            const imgObj = await getImgDataWithDimensions(imgs[i].ruta);
+                            if (imgObj) {
+                                const imgRatio = imgObj.width / imgObj.height;
+                                const boxRatio = cW / cH;
+                                let finalW, finalH;
+
+                                if (imgRatio > boxRatio) {
+                                    finalW = cW;
+                                    finalH = cW / imgRatio;
+                                } else {
+                                    finalH = cH;
+                                    finalW = cH * imgRatio;
+                                }
+                                
+                                const finalX = startX + i * (cW + gutter) + (cW - finalW) / 2;
+                                const finalY = areaY + (cH - finalH) / 2;
+
                                 slide.addImage({
-                                    data: imgB64,
-                                    x: startX + i * (cW + gutter),
-                                    y: areaY,
-                                    sizing: { type: 'contain', w: cW, h: cH }
+                                    data: imgObj.data,
+                                    x: finalX,
+                                    y: finalY,
+                                    w: finalW,
+                                    h: finalH
                                 });
                             }
                         }

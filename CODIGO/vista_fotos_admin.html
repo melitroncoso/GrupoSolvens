@@ -556,6 +556,17 @@
             }
         }
 
+        async function getImgDataWithDimensions(url) {
+            const dataUrl = await imgUrlToBase64(url);
+            if (!dataUrl) return null;
+            return await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ data: dataUrl, width: img.width, height: img.height });
+                img.onerror = () => resolve(null);
+                img.src = dataUrl;
+            });
+        }
+
         document.getElementById('btnExportarPPT').onclick = async () => {
             if (!filteredVisitas || filteredVisitas.length === 0) {
                 mostrarToast('No hay visitas para exportar con los filtros actuales.', 'error');
@@ -652,17 +663,22 @@
                         }
 
                         const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                        slide.addText(`${v.cadena} | ${v.cliente} | ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                        slide.addText(`Cliente: ${v.cliente} | Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
                             x: 1.5, y: 0.05, w: 8.3, h: 0.5,
                             fontSize: 11, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                         });
 
-                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                        // Título Cadena y PDV
+                        slide.addText(v.cadena, {
                             x: 0.5, y: 0.7, w: 9, h: 0.4,
-                            fontSize: 20, color: 'DC2626', bold: true
+                            fontSize: 24, color: 'DC2626', bold: true
+                        });
+                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                            x: 0.5, y: 1.1, w: 9, h: 0.3,
+                            fontSize: 16, color: '666666'
                         });
 
-                        const areaY = 1.3, areaW = 9, areaH = 4.1, gutter = 0.3;
+                        const areaY = 1.6, areaW = 9, areaH = 3.8, gutter = 0.3;
                         let cW = (areaW - (count - 1) * gutter) / count;
                         let startX = 0.5;
 
@@ -670,13 +686,29 @@
                         else if (count === 2) { cW = 4; startX = 0.5 + (areaW - (cW * 2 + gutter)) / 2; }
 
                         for (let i = 0; i < count; i++) {
-                            const imgB64 = await imgUrlToBase64(chunk[i].ruta);
-                            if (imgB64) {
+                            const imgObj = await getImgDataWithDimensions(chunk[i].ruta);
+                            if (imgObj) {
+                                const imgRatio = imgObj.width / imgObj.height;
+                                const boxRatio = cW / areaH;
+                                let finalW, finalH;
+
+                                if (imgRatio > boxRatio) {
+                                    finalW = cW;
+                                    finalH = cW / imgRatio;
+                                } else {
+                                    finalH = areaH;
+                                    finalW = areaH * imgRatio;
+                                }
+                                
+                                const finalX = startX + i * (cW + gutter) + (cW - finalW) / 2;
+                                const finalY = areaY + (areaH - finalH) / 2;
+
                                 slide.addImage({
-                                    data: imgB64,
-                                    x: startX + i * (cW + gutter),
-                                    y: areaY,
-                                    sizing: { type: 'contain', w: cW, h: areaH }
+                                    data: imgObj.data,
+                                    x: finalX,
+                                    y: finalY,
+                                    w: finalW,
+                                    h: finalH
                                 });
                             }
                         }

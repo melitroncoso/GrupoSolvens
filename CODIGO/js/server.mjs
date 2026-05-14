@@ -1138,7 +1138,7 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
             if (imagenesResult.rows.length === 0) continue;
 
             // Procesar imágenes a base64
-            let imagenesB64 = [];
+            let imagenesData = [];
             for (const img of imagenesResult.rows) {
                 try {
                     const imgRes = await fetch(img.ruta_imagen);
@@ -1147,21 +1147,26 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                     const ct = (imgRes.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
                     const buf = Buffer.from(await imgRes.arrayBuffer());
                     if (buf.length > 0) {
-                        imagenesB64.push(`data:${ct};base64,${buf.toString('base64')}`);
+                        const metadata = await sharp(buf).metadata();
+                        imagenesData.push({
+                            data: `data:${ct};base64,${buf.toString('base64')}`,
+                            width: metadata.width,
+                            height: metadata.height
+                        });
                     }
                 } catch (e) {}
             }
 
-            if (imagenesB64.length === 0) continue;
+            if (imagenesData.length === 0) continue;
 
             // Chunkear imágenes si hay más de 3 (como el cliente: 1-3, 4->2/2, 5->3/2)
             let imageChunks = [];
-            if (imagenesB64.length <= 3) {
-                imageChunks.push(imagenesB64);
-            } else if (imagenesB64.length === 4) {
-                imageChunks.push(imagenesB64.slice(0, 2), imagenesB64.slice(2, 4));
-            } else if (imagenesB64.length === 5) {
-                imageChunks.push(imagenesB64.slice(0, 3), imagenesB64.slice(3, 5));
+            if (imagenesData.length <= 3) {
+                imageChunks.push(imagenesData);
+            } else if (imagenesData.length === 4) {
+                imageChunks.push(imagenesData.slice(0, 2), imagenesData.slice(2, 4));
+            } else if (imagenesData.length === 5) {
+                imageChunks.push(imagenesData.slice(0, 3), imagenesData.slice(3, 5));
             }
 
             for (let cIdx = 0; cIdx < imageChunks.length; cIdx++) {
@@ -1188,19 +1193,23 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                 }
 
                 const fechaStr = new Date(visita.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                slide.addText(`${suc.cadena} | ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                slide.addText(`Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
                     x: 1.5, y: 0.05, w: 8.3, h: 0.5,
                     fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                 });
 
-                // Título PDV
-                slide.addText(`${suc.calle} ${suc.altura || ''} - ${suc.localidad}`, {
+                // Título Cadena y PDV
+                slide.addText(suc.cadena, {
                     x: 0.5, y: 0.7, w: 9, h: 0.4,
-                    fontSize: 20, color: 'DC2626', bold: true
+                    fontSize: 24, color: 'DC2626', bold: true
+                });
+                slide.addText(`${suc.calle} ${suc.altura || ''} - ${suc.localidad}`, {
+                    x: 0.5, y: 1.1, w: 9, h: 0.3,
+                    fontSize: 16, color: '666666'
                 });
 
                 // Layout dinámico centrado para 1, 2 o 3 imágenes
-                const areaY = 1.3, areaW = 9, areaH = 4.1;
+                const areaY = 1.6, areaW = 9, areaH = 3.8;
                 const gutter = 0.3; 
 
                 let cW = (areaW - (count - 1) * gutter) / count;
@@ -1216,11 +1225,28 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                 }
 
                 for (let i = 0; i < count; i++) {
+                    const imgObj = imgs[i];
+                    const imgRatio = imgObj.width / imgObj.height;
+                    const boxRatio = cW / cH;
+                    let finalW, finalH;
+
+                    if (imgRatio > boxRatio) {
+                        finalW = cW;
+                        finalH = cW / imgRatio;
+                    } else {
+                        finalH = cH;
+                        finalW = cH * imgRatio;
+                    }
+                    
+                    const finalX = startX + i * (cW + gutter) + (cW - finalW) / 2;
+                    const finalY = areaY + (cH - finalH) / 2;
+
                     slide.addImage({
-                        data: imgs[i],
-                        x: startX + i * (cW + gutter),
-                        y: areaY,
-                        sizing: { type: 'contain', w: cW, h: cH }
+                        data: imgObj.data,
+                        x: finalX,
+                        y: finalY,
+                        w: finalW,
+                        h: finalH
                     });
                 }
             }
