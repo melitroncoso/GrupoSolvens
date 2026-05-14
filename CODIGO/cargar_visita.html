@@ -154,6 +154,9 @@
         // ── HELPERS ──────────────────────────────────────────────────────────────
 
         // ── STOCK ────────────────────────────────────────────────────────────────
+        // Paleta de colores para niveles de stock normales (Sin stock → Mucho)
+        const COLORES_STOCK_NORMAL = ['#dc2626', '#f59e0b', '#3b82f6', '#22c55e'];
+
         async function cargarCategoriasStock(idCliente) {
             try {
                 const res = await fetch(`/api/categorias-stock?id_cliente=${idCliente}`);
@@ -170,28 +173,38 @@
                 stockSeleccionado = {};
                 totalCategorias = cats.length;
 
-                const niveles = [
-                    { id: 1, label: 'Sin stock', color: '#dc2626' },
-                    { id: 2, label: 'Poco',      color: '#f59e0b' },
-                    { id: 3, label: 'Buen stock', color: '#3b82f6' },
-                    { id: 4, label: 'Mucho',     color: '#22c55e' }
-                ];
+                // Obtener tipos de stock para cada categoría desde el backend (en paralelo)
+                const tiposPorCat = await Promise.all(
+                    cats.map(cat =>
+                        fetch(`/api/tipos-stock?id_categoria=${cat.id}`)
+                            .then(r => r.json())
+                            .catch(() => [])
+                    )
+                );
 
-                cats.forEach(cat => {
+                cats.forEach((cat, idx) => {
+                    const tipos = tiposPorCat[idx] || [];
                     const div = document.createElement('div');
                     div.style.cssText = 'padding:14px 0;border-bottom:1px solid #2a2a2a;';
-                    div.innerHTML = `
-                        <p style="font-size:13px;color:#e0e0e0;margin-bottom:10px;font-weight:500;">${cat.categoria}</p>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            ${niveles.map(n => `
-                                <div class="stock-btn" data-catid="${cat.id}" data-nivel="${n.id}"
-                                    onclick="seleccionarStock(${cat.id}, ${n.id})"
+
+                    const botonesHtml = tipos.map((t, i) => {
+                        // Sí → verde, No → rojo, resto → paleta normal por índice
+                        let color;
+                        const tl = t.tipo.toLowerCase();
+                        if (tl === 'sí' || tl === 'si') color = '#22c55e';
+                        else if (tl === 'no')           color = '#dc2626';
+                        else color = COLORES_STOCK_NORMAL[i % COLORES_STOCK_NORMAL.length];
+
+                        return `<div class="stock-btn" data-catid="${cat.id}" data-nivel="${t.id}" data-color="${color}"
+                                    onclick="seleccionarStock(${cat.id}, ${t.id})"
                                     style="flex:1;min-width:60px;text-align:center;padding:10px 4px;
                                            border-radius:8px;border:2px solid #333;background:#1a1a1a;
-                                           font-size:12px;color:#aaa;cursor:pointer;transition:.2s;user-select:none;">
-                                    ${n.label}
-                                </div>`).join('')}
-                        </div>`;
+                                           font-size:12px;color:#aaa;cursor:pointer;transition:.2s;user-select:none;">${t.tipo}</div>`;
+                    }).join('');
+
+                    div.innerHTML = `
+                        <p style="font-size:13px;color:#e0e0e0;margin-bottom:10px;font-weight:500;">${cat.categoria}</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">${botonesHtml}</div>`;
                     lista.appendChild(div);
                 });
 
@@ -203,17 +216,17 @@
 
         window.seleccionarStock = (idCat, idNivel) => {
             stockSeleccionado[idCat] = idNivel;
-            const colores = { 1:'#dc2626', 2:'#f59e0b', 3:'#3b82f6', 4:'#22c55e' };
             document.querySelectorAll(`.stock-btn[data-catid="${idCat}"]`).forEach(btn => {
                 const nivel = parseInt(btn.dataset.nivel);
+                const color = btn.dataset.color || '#3b82f6';
                 if (nivel === idNivel) {
-                    btn.style.borderColor = colores[nivel];
-                    btn.style.background = colores[nivel] + '22';
-                    btn.style.color = '#fff';
+                    btn.style.borderColor = color;
+                    btn.style.background  = color + '22';
+                    btn.style.color       = '#fff';
                 } else {
                     btn.style.borderColor = '#333';
-                    btn.style.background = '#1a1a1a';
-                    btn.style.color = '#aaa';
+                    btn.style.background  = '#1a1a1a';
+                    btn.style.color       = '#aaa';
                 }
             });
         };

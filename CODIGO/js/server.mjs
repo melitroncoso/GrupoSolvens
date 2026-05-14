@@ -1710,6 +1710,45 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// TIPOS DE STOCK (filtrado dinámico por categoría)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Devuelve los tipos de stock disponibles según la categoría seleccionada:
+//   - Si la categoría es "Repone Sidra" → solo "Sí" y "No"
+//   - Cualquier otra categoría           → todos los tipos excepto "Sí" y "No"
+app.get('/api/tipos-stock', async (req, res, next) => {
+    const { id_categoria } = req.query;
+    if (!id_categoria) return res.status(400).json({ error: 'Falta id_categoria' });
+    try {
+        const catRow = await query(
+            `SELECT categoria FROM categoria WHERE id = $1`,
+            [id_categoria]
+        );
+        if (catRow.rows.length === 0)
+            return res.status(404).json({ error: 'Categoría no encontrada' });
+
+        const nombreCat = catRow.rows[0].categoria;
+        const esReponeSidra = nombreCat.trim().toLowerCase() === 'repone sidra';
+
+        let result;
+        if (esReponeSidra) {
+            // Solo mostrar "Sí" y "No"
+            result = await query(
+                `SELECT id, tipo FROM tipo_stock WHERE tipo IN ('Sí', 'No') ORDER BY tipo DESC`
+            );
+        } else {
+            // Mostrar todo excepto "Sí" y "No"
+            result = await query(
+                `SELECT id, tipo FROM tipo_stock WHERE tipo NOT IN ('Sí', 'No') ORDER BY tipo`
+            );
+        }
+
+        res.json(result.rows);
+    } catch (e) { next(e); }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PROXY DE IMÁGENES R2 (evita CORS en el frontend al generar PPTX)
 // ═══════════════════════════════════════════════════════════════════════════════
 
