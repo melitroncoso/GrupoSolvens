@@ -1628,6 +1628,88 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// REPORTE CATEGORÍAS DEL VALLE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ID_CLIENTE_VALLE = 7;
+
+app.get('/api/reporte-categorias-valle', async (req, res, next) => {
+    try {
+        // 1. Todas las sucursales abastecidas por el Valle
+        const sucursalesResult = await query(`
+            SELECT s.id,
+                   ca.nombre || ' - ' || s.calle ||
+                   COALESCE(' ' || CAST(s.altura AS VARCHAR), '') ||
+                   ', ' || s.localidad AS nombre_sucursal
+            FROM abastece a
+            JOIN sucursal s ON a.id_sucursal = s.id
+            JOIN cadena ca  ON s.id_cadena = ca.id
+            WHERE a.id_cliente = $1
+            ORDER BY ca.nombre, s.localidad, s.calle
+        `, [ID_CLIENTE_VALLE]);
+
+        // 2. Todas las categorías
+        const categoriasResult = await query(
+            `SELECT id, categoria FROM categoria ORDER BY categoria`
+        );
+
+        // 3. Última visita de la semana actual por sucursal (para el Valle)
+        const visitasResult = await query(`
+            SELECT DISTINCT ON (v.id_sucursal)
+                   v.id      AS id_visita,
+                   v.fecha,
+                   v.id_sucursal
+            FROM visita v
+            WHERE v.id_cliente = $1
+              AND v.fecha >= date_trunc('week', CURRENT_DATE)
+              AND v.fecha <  date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+            ORDER BY v.id_sucursal, v.fecha DESC, v.id DESC
+        `, [ID_CLIENTE_VALLE]);
+
+        // Indexar visitas por id_sucursal para acceso O(1)
+        const visitaMap = {};
+        for (const v of visitasResult.rows) {
+            visitaMap[v.id_sucursal] = v;
+        }
+
+        // 4. Para las visitas encontradas, obtener todos los visita_stock de una vez
+        const idsVisitas = visitasResult.rows.map(v => v.id_visita);
+        let stockMap = {}; // { id_visita: { id_categoria: tipo_stock } }
+
+        if (idsVisitas.length > 0) {
+            const stockResult = await query(`
+                SELECT vs.id_visita, vs.id_categoria, ts.tipo
+                FROM visita_stock vs
+                JOIN tipo_stock ts ON vs.id_tipo_stock = ts.id
+                WHERE vs.id_visita = ANY($1)
+            `, [idsVisitas]);
+
+            for (const row of stockResult.rows) {
+                if (!stockMap[row.id_visita]) stockMap[row.id_visita] = {};
+                stockMap[row.id_visita][row.id_categoria] = row.tipo;
+            }
+        }
+
+        // 5. Construir filas de respuesta
+        const filas = sucursalesResult.rows.map(suc => {
+            const visita = visitaMap[suc.id] || null;
+            const stockPorCat = visita ? (stockMap[visita.id_visita] || {}) : {};
+            return {
+                sucursal: suc.nombre_sucursal,
+                fecha: visita ? visita.fecha : null,
+                stock: stockPorCat
+            };
+        });
+
+        res.json({
+            categorias: categoriasResult.rows,
+            filas
+        });
+    } catch (e) { next(e); }
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PROXY DE IMÁGENES R2 (evita CORS en el frontend al generar PPTX)
 // ═══════════════════════════════════════════════════════════════════════════════
 

@@ -10,11 +10,12 @@
     <link rel="stylesheet" href="style/inicio.css">
     <link rel="stylesheet" href="style/inicioAdmin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
     <header class="header">
-        <div class="header-left">
+        <div class="header-left" style="display:flex; align-items:center; gap:10px;">
             <a href="inicioAdmin.html" class="btn-volver">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -22,6 +23,14 @@
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
             </a>
+            <button id="btnCategoriasValle" onclick="descargarCategoriasValle()" style="
+                display: flex; align-items: center; gap: 6px;
+                background: #16a34a; color: #fff; border: none; border-radius: 8px;
+                padding: 6px 13px; font-size: 13px; font-weight: 600;
+                cursor: pointer; white-space: nowrap; transition: background 0.2s;
+            ">
+                <i class="fa-solid fa-file-excel"></i> Categorías del Valle
+            </button>
         </div>
         <div class="header-center">
             <img src="../IMG/logo.png" alt="Logo Grupo Solvens" class="logo-nav">
@@ -91,6 +100,62 @@
                 });
             }
         });
+
+        // Hover para el botón verde
+        const btnValle = document.getElementById('btnCategoriasValle');
+        if (btnValle) {
+            btnValle.addEventListener('mouseover', () => btnValle.style.background = '#15803d');
+            btnValle.addEventListener('mouseout',  () => btnValle.style.background = '#16a34a');
+        }
+
+        async function descargarCategoriasValle() {
+            const btn = document.getElementById('btnCategoriasValle');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
+
+            try {
+                const res = await fetch('/api/reporte-categorias-valle');
+                if (!res.ok) throw new Error('Error al obtener datos del servidor');
+                const data = await res.json();
+
+                const { categorias, filas } = data;
+
+                // Construir filas del Excel: Sucursal | Fecha | [una col por categoría]
+                const encabezados = ['Sucursal', 'Última Visita'];
+                categorias.forEach(c => encabezados.push(c.categoria));
+
+                const datosExcel = filas.map(fila => {
+                    const row = {
+                        'Sucursal': fila.sucursal,
+                        'Última Visita': fila.fecha
+                            ? new Date(fila.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })
+                            : ''
+                    };
+                    categorias.forEach(c => {
+                        row[c.categoria] = fila.stock[c.id] || '';
+                    });
+                    return row;
+                });
+
+                const hoja  = XLSX.utils.json_to_sheet(datosExcel, { header: encabezados });
+                const libro = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(libro, hoja, 'Categorías del Valle');
+
+                // Ancho automático de columnas
+                const colWidths = encabezados.map(h => ({ wch: Math.max(h.length, 14) }));
+                hoja['!cols'] = colWidths;
+
+                const hoy = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(libro, `Categorias_Valle_${hoy}.xlsx`);
+
+            } catch (err) {
+                console.error(err);
+                alert('No se pudo generar el reporte: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-file-excel"></i> Categorías del Valle';
+            }
+        }
     </script>
 </body>
 
