@@ -47,7 +47,7 @@
 
             <div class="filtro-item">
                 <label class="label-pequeno">Seleccione Zona</label>
-                <select id="selZona" class="select-filtro select-consulta-filtro" multiple>
+                <select id="selZona" class="select-filtro select-consulta-filtro">
                     <option value="">Todas</option>
                 </select>
             </div>
@@ -118,8 +118,7 @@
         async function consultar() {
             const sel = document.getElementById('selCliente');
             const id = sel.value;
-            const selZ = document.getElementById('selZona');
-            const idZona = Array.from(selZ.selectedOptions).map(o => o.value).filter(v => v).join(',');
+            const idZona = document.getElementById('selZona').value;
             if (!id) return;
             const tbody = document.querySelector('#tblResultados tbody');
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';

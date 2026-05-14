@@ -1574,8 +1574,8 @@ app.get('/api/visitas-semana-cliente', async (req, res, next) => {
         const params = [id_cliente];
         let zonaFilter = '';
         if (id_zona) {
-            const zArr = id_zona.split(',').map(Number);
-            zonaFilter = `AND sz.id_zona = ANY($${params.push(zArr)}::int[])`;
+            params.push(id_zona);
+            zonaFilter = `AND sz.id_zona = $${params.length}`;
         }
 
         const result = await query(`
@@ -1618,8 +1618,8 @@ app.get('/api/carga-imagenes-por-cliente', async (req, res, next) => {
         const params = [id_cliente];
         let zonaFilter = '';
         if (id_zona) {
-            const zArr = id_zona.split(',').map(Number);
-            zonaFilter = `AND sz.id_zona = ANY($${params.push(zArr)}::int[])`;
+            params.push(id_zona);
+            zonaFilter = `AND sz.id_zona = $${params.length}`;
         }
 
         const result = await query(`

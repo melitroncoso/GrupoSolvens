@@ -132,13 +132,7 @@
                             : ''
                     };
                     categorias.forEach(c => {
-                        let valorStock = fila.stock[c.id] || '';
-                        if (c.categoria.trim().toLowerCase() === 'repone sidra') {
-                            if (valorStock !== 'Sí' && valorStock !== 'No') {
-                                valorStock = '';
-                            }
-                        }
-                        row[c.categoria] = valorStock;
+                        row[c.categoria] = fila.stock[c.id] || '';
                     });
                     return row;
                 });

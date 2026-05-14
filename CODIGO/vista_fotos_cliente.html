@@ -93,7 +93,7 @@
                     </div>
                     <div class="filtro-contenido">
                         <p class="descripcion-filtro">Seleccione la zona:</p>
-                        <select class="select-filtro" id="filtroZona" multiple>
+                        <select class="select-filtro" id="filtroZona">
                             <option value="">Todas</option>
                         </select>
                     </div>
@@ -269,8 +269,7 @@
             const fHasta = document.getElementById('fechaHasta').value;
             const fCad = document.getElementById('filtroCadena').value;
             const fSuc = document.getElementById('filtroSucursal').value;
-            const selZona = document.getElementById('filtroZona');
-            const fZona = Array.from(selZona.selectedOptions).map(o => o.value).filter(v => v);
+            const fZona = document.getElementById('filtroZona').value;
             const fSubzona = document.getElementById('filtroSubzona').value;
             const fCanal = document.getElementById('filtroCanal').value;
             filteredVisitas = visitasData.filter(v => {
@@ -286,7 +285,7 @@
                 }
                 if (fCad && v.cadena !== fCad) return false;
                 if (fSuc && v.sucursal !== fSuc) return false;
-                if (fZona.length > 0 && !fZona.includes(v.zona)) return false;
+                if (fZona && v.zona !== fZona) return false;
                 if (fSubzona && v.subzona !== fSubzona) return false;
                 if (fCanal && v.canal !== fCanal) return false;
                 return true;
