@@ -118,7 +118,7 @@
                 </div>
                 <div class="filtro-contenido">
                     <p class="descripcion-filtro">Seleccione la región:</p>
-                    <select class="select-filtro" id="filtroRegion">
+                    <select class="select-filtro" id="filtroRegion" multiple>
                         <option value="">Todas</option>
                     </select>
                 </div>
@@ -273,16 +273,22 @@
             cargarDatos();
         });
 
-        // select default todo
+        let sucursalesAll = [];
+
         async function cargarOpciones() {
             try {
                 const res = await fetch(`${API_BASE}/filtros-opciones`);
                 const data = await res.json();
+                
+                sucursalesAll = data.sucursales || [];
+                
                 poblarSelect('filtroCadena', data.cadenas);
-                poblarSelect('filtroSucursal', data.sucursales);
+                poblarSelectLimpiando('filtroSucursal', sucursalesAll, 'Todas');
                 poblarSelect('filtroCanal', data.canales);
                 poblarSelect('filtroRegion', data.regiones);
                 poblarSelect('filtroCategoria', data.categorias);
+                
+                document.getElementById('filtroRegion').addEventListener('change', aplicarFiltroCascada);
             } catch (e) { console.error('Error cargando opciones de filtros:', e); }
         }
 
@@ -296,6 +302,31 @@
             });
         }
 
+        function poblarSelectLimpiando(id, lista, placeholder = '') {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            sel.innerHTML = placeholder ? `<option value="">${placeholder}</option>` : '';
+            lista.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.ID;
+                opt.textContent = item.Nombre;
+                sel.appendChild(opt);
+            });
+        }
+
+        function aplicarFiltroCascada() {
+            const selZona = document.getElementById('filtroRegion');
+            const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v);
+            
+            const selSucursal = document.getElementById('filtroSucursal');
+            const prevSucursal = selSucursal.value;
+            const sucursalesFiltradas = zonasIds.length > 0
+                ? sucursalesAll.filter(s => s.id_zona && zonasIds.includes(String(s.id_zona))) 
+                : sucursalesAll;
+            poblarSelectLimpiando('filtroSucursal', sucursalesFiltradas, 'Todas');
+            selSucursal.value = prevSucursal;
+        }
+
 
         function buildParams() {
             const p = new URLSearchParams();
@@ -306,7 +337,11 @@
             if (v('filtroCadena')) p.set('id_cadena', v('filtroCadena'));
             if (v('filtroSucursal')) p.set('id_sucursal', v('filtroSucursal'));
             if (v('filtroCanal')) p.set('id_canal', v('filtroCanal'));
-            if (v('filtroRegion')) p.set('id_region', v('filtroRegion'));
+            
+            const regionSelect = document.getElementById('filtroRegion');
+            const region = Array.from(regionSelect.selectedOptions).map(o => o.value).filter(val => val).join(',');
+            if (region) p.set('id_region', region);
+            
             if (v('filtroCategoria')) p.set('id_categoria', v('filtroCategoria'));
             return p;
         }
@@ -419,7 +454,15 @@
         document.getElementById('btnAplicar').addEventListener('click', cargarDatos);
         document.getElementById('btnLimpiar').addEventListener('click', () => {
             ['fechaDesde', 'fechaHasta', 'filtroCadena', 'filtroSucursal', 'filtroCanal', 'filtroRegion', 'filtroCategoria']
-                .forEach(id => document.getElementById(id).value = '');
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el.multiple) {
+                        Array.from(el.options).forEach(opt => opt.selected = false);
+                    } else {
+                        el.value = '';
+                    }
+                });
+            aplicarFiltroCascada();
             cargarDatos();
         });
         // botón de exportar

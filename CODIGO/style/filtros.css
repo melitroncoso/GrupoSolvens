@@ -202,6 +202,24 @@
     padding: 5px;
 }
 
+.select-filtro[multiple] {
+    height: 90px;
+    padding-right: 8px; /* Remove chevron space */
+    background-image: none;
+    overflow-y: auto;
+}
+
+.select-filtro[multiple] option {
+    padding: 6px 8px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+.select-filtro[multiple] option:checked {
+    background: linear-gradient(0deg, #dc2626 0%, #dc2626 100%);
+    color: #ffffff;
+}
+
 .rango-fechas {
     display: grid;
     grid-template-columns: 1fr 1fr;

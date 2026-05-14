@@ -100,7 +100,7 @@
                     </div>
                     <div class="filtro-contenido">
                         <p class="descripcion-filtro">Seleccione la región (zona):</p>
-                        <select class="select-filtro" id="filtroZona">
+                        <select class="select-filtro" id="filtroZona" multiple>
                             <option value="">Todas</option>
                         </select>
                     </div>
@@ -493,6 +493,27 @@
             llenar('filtroSucursal', makeOptions(visitasData.map(v => v.sucursal)), 'Sucursal (todas)');
             llenar('filtroZona', makeOptions(visitasData.map(v => v.zona)), 'Zona (todas)');
             llenar('filtroRepositor', makeOptions(visitasData.map(v => v.repositor)), 'Repositor (todos)');
+
+            document.getElementById('filtroZona').addEventListener('change', () => {
+                const selZona = document.getElementById('filtroZona');
+                const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v);
+                
+                const selSuc = document.getElementById('filtroSucursal');
+                const prevSuc = selSuc.value;
+                const sucursalesPermitidas = zonasIds.length > 0 
+                    ? visitasData.filter(v => zonasIds.includes(v.zona)).map(v => v.sucursal)
+                    : visitasData.map(v => v.sucursal);
+                llenar('filtroSucursal', makeOptions(sucursalesPermitidas), 'Sucursal (todas)');
+                selSuc.value = prevSuc;
+
+                const selRepo = document.getElementById('filtroRepositor');
+                const prevRepo = selRepo.value;
+                const repositoresPermitidos = zonasIds.length > 0
+                    ? visitasData.filter(v => zonasIds.includes(v.zona)).map(v => v.repositor)
+                    : visitasData.map(v => v.repositor);
+                llenar('filtroRepositor', makeOptions(repositoresPermitidos), 'Repositor (todos)');
+                selRepo.value = prevRepo;
+            });
         }
 
         function applyFilters() {
@@ -501,7 +522,8 @@
             const fC = document.getElementById('filtroCliente').value;
             const fCad = document.getElementById('filtroCadena').value;
             const fSuc = document.getElementById('filtroSucursal').value;
-            const fZona = document.getElementById('filtroZona').value;
+            const selZona = document.getElementById('filtroZona');
+            const fZona = Array.from(selZona.selectedOptions).map(o => o.value).filter(v => v);
             const fRepo = document.getElementById('filtroRepositor').value;
             const fEstado = document.getElementById('filtroEstado').value;
 
@@ -511,7 +533,7 @@
                 if (fC && v.cliente !== fC) return false;
                 if (fCad && v.cadena !== fCad) return false;
                 if (fSuc && v.sucursal !== fSuc) return false;
-                if (fZona && v.zona !== fZona) return false;
+                if (fZona.length > 0 && !fZona.includes(v.zona)) return false;
                 if (fRepo && v.repositor !== fRepo) return false;
                 // Filtro por estado: mostrar visita si al menos una imagen coincide
                 if (fEstado && !v.imagenes.some(img => img.estado === fEstado)) return false;
@@ -528,7 +550,16 @@
 
         function clearFilters() {
             ['fechaDesde', 'fechaHasta', 'filtroCliente', 'filtroCadena', 'filtroSucursal', 'filtroZona', 'filtroRepositor', 'filtroEstado']
-                .forEach(id => document.getElementById(id).value = '');
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el.multiple) {
+                        Array.from(el.options).forEach(opt => opt.selected = false);
+                    } else {
+                        el.value = '';
+                    }
+                });
+            // Disparar change para restablecer cascada
+            document.getElementById('filtroZona').dispatchEvent(new Event('change'));
             applyFilters();
         }
 

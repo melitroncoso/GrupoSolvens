@@ -96,7 +96,7 @@
                     </div>
                     <div class="filtro-contenido">
                         <p class="descripcion-filtro">Seleccione la zona:</p>
-                        <select class="select-filtro" id="filtroZona">
+                        <select class="select-filtro" id="filtroZona" multiple>
                             <option value="">Todas</option>
                         </select>
                     </div>
@@ -277,6 +277,27 @@
             llenar('filtroZona',      makeOptions(visitasData.map(v => v.zona)),                'Todas');
             llenar('filtroCanal',     makeOptions(visitasData.map(v => v.canal)),               'Todos');
             llenar('filtroRepositor', makeOptions(visitasData.map(v => v.repositor || v.usuario)), 'Todos');
+
+            document.getElementById('filtroZona').addEventListener('change', () => {
+                const selZona = document.getElementById('filtroZona');
+                const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v);
+                
+                const selSuc = document.getElementById('filtroSucursal');
+                const prevSuc = selSuc.value;
+                const sucursalesPermitidas = zonasIds.length > 0 
+                    ? visitasData.filter(v => zonasIds.includes(v.zona)).map(v => v.sucursal)
+                    : visitasData.map(v => v.sucursal);
+                llenar('filtroSucursal', makeOptions(sucursalesPermitidas), 'Todas');
+                selSuc.value = prevSuc;
+
+                const selRepo = document.getElementById('filtroRepositor');
+                const prevRepo = selRepo.value;
+                const repositoresPermitidos = zonasIds.length > 0
+                    ? visitasData.filter(v => zonasIds.includes(v.zona)).map(v => v.repositor || v.usuario)
+                    : visitasData.map(v => v.repositor || v.usuario);
+                llenar('filtroRepositor', makeOptions(repositoresPermitidos), 'Todos');
+                selRepo.value = prevRepo;
+            });
         }
 
         function applyFilters() {
@@ -285,7 +306,8 @@
             const fCliente   = document.getElementById('filtroCliente').value;
             const fCad       = document.getElementById('filtroCadena').value;
             const fSuc       = document.getElementById('filtroSucursal').value;
-            const fZona      = document.getElementById('filtroZona').value;
+            const selZona    = document.getElementById('filtroZona');
+            const fZona      = Array.from(selZona.selectedOptions).map(o => o.value).filter(v => v);
             const fCanal     = document.getElementById('filtroCanal').value;
             const fRepositor = document.getElementById('filtroRepositor').value;
 
@@ -295,7 +317,7 @@
                 if (fCliente   && v.cliente !== fCliente) return false;
                 if (fCad       && v.cadena !== fCad) return false;
                 if (fSuc       && v.sucursal !== fSuc) return false;
-                if (fZona      && v.zona !== fZona) return false;
+                if (fZona.length > 0 && !fZona.includes(v.zona)) return false;
                 if (fCanal     && v.canal !== fCanal) return false;
                 if (fRepositor && (v.repositor || v.usuario) !== fRepositor) return false;
                 return true;
@@ -312,7 +334,15 @@
 
         function clearFilters() {
             ['fechaDesde','fechaHasta','filtroCliente','filtroCadena','filtroSucursal','filtroZona','filtroCanal','filtroRepositor']
-                .forEach(id => document.getElementById(id).value = '');
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el.multiple) {
+                        Array.from(el.options).forEach(opt => opt.selected = false);
+                    } else {
+                        el.value = '';
+                    }
+                });
+            document.getElementById('filtroZona').dispatchEvent(new Event('change'));
             applyFilters();
         }
 
