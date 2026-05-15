@@ -1681,9 +1681,10 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
             ORDER BY ca.nombre, s.localidad, s.calle
         `, [ID_CLIENTE_VALLE]);
 
-        // 2. Todas las categorías
+        // 2. Solo las categorías del Valle (id_cliente = ID_CLIENTE_VALLE)
         const categoriasResult = await query(
-            `SELECT id, categoria FROM categoria ORDER BY categoria`
+            `SELECT id, categoria FROM categoria WHERE id_cliente = $1 ORDER BY categoria`,
+            [ID_CLIENTE_VALLE]
         );
 
         // 3. Última visita de la semana actual por sucursal (para el Valle)

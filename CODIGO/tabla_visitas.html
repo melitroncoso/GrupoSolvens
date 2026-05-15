@@ -265,7 +265,7 @@
                 sucursalesAll = data.sucursales || [];
                 repositoresAll = data.repositores || [];
 
-                poblarSelect('filtroCadena', data.cadenas || []);
+                poblarSelect('filtroCadena', data.cadenas || [], 'Cadena (todas)');
                 poblarSelectLimpiando('filtroSucursal', sucursalesAll, 'Sucursal (todas)');
                 poblarSelect('filtroRegion', data.regiones || []);
                 poblarSelectLimpiando('filtroRepositor', repositoresAll, 'Repositor (todos)');
@@ -273,7 +273,7 @@
                 // 2. Cargar Clientes
                 const resCli = await fetch(`${API_BASE}/clientes-activos`);
                 const clientes = await resCli.json();
-                poblarSelect('filtroCliente', clientes || []);
+                poblarSelect('filtroCliente', clientes || [], 'Cliente (todos)');
 
                 // 3. Listener para Cascada de Región
                 document.getElementById('filtroRegion').addEventListener('change', aplicarFiltroCascada);
@@ -282,12 +282,21 @@
             }
         }
 
-        function poblarSelect(id, lista) {
+        function poblarSelect(id, lista, placeholder = '') {
             const sel = document.getElementById(id);
-            lista.forEach(item => {
+            // Clear existing options except first if it's a placeholder
+            while (sel.options.length > 0) sel.remove(0);
+            if (placeholder) {
+                const ph = document.createElement('option');
+                ph.value = '';
+                ph.textContent = placeholder;
+                sel.appendChild(ph);
+            }
+            const sorted = [...lista].sort((a,b) => String(a.Nombre).localeCompare(String(b.Nombre), 'es'));
+            sorted.forEach(item => {
                 const opt = document.createElement('option');
-                opt.value = item.ID;
-                opt.textContent = item.Nombre;
+                opt.value = item.ID || item.id;
+                opt.textContent = item.Nombre || item.nombre;
                 sel.appendChild(opt);
             });
         }
@@ -306,24 +315,29 @@
 
         function aplicarFiltroCascada() {
             const selZona = document.getElementById('filtroRegion');
-            const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v);
-            
+            const zonasIds = Array.from(selZona.selectedOptions)
+                .map(o => String(o.value)).filter(v => v !== '');
+
+            // Sucursales
             const selSucursal = document.getElementById('filtroSucursal');
             const prevSucursal = selSucursal.value;
             const sucursalesFiltradas = zonasIds.length > 0
-                ? sucursalesAll.filter(s => s.id_zona && zonasIds.includes(String(s.id_zona))) 
+                ? sucursalesAll.filter(s => s.id_zona && zonasIds.includes(String(s.id_zona)))
                 : sucursalesAll;
             poblarSelectLimpiando('filtroSucursal', sucursalesFiltradas, 'Sucursal (todas)');
-            selSucursal.value = prevSucursal;
+            if (sucursalesFiltradas.some(s => String(s.ID) === prevSucursal))
+                selSucursal.value = prevSucursal;
 
+            // Repositores
             const selRepositor = document.getElementById('filtroRepositor');
             if (selRepositor) {
                 const prevRepo = selRepositor.value;
                 const repositoresFiltrados = zonasIds.length > 0
-                    ? repositoresAll.filter(r => r.id_zona && zonasIds.includes(String(r.id_zona))) 
+                    ? repositoresAll.filter(r => r.id_zona && zonasIds.includes(String(r.id_zona)))
                     : repositoresAll;
                 poblarSelectLimpiando('filtroRepositor', repositoresFiltrados, 'Repositor (todos)');
-                selRepositor.value = prevRepo;
+                if (repositoresFiltrados.some(r => String(r.ID) === prevRepo))
+                    selRepositor.value = prevRepo;
             }
         }
 

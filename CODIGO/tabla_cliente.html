@@ -292,14 +292,23 @@
             } catch (e) { console.error('Error cargando opciones de filtros:', e); }
         }
 
-        function poblarSelect(id, lista) {
+        function poblarSelect(id, lista, placeholder = '') {
             const sel = document.getElementById(id);
-            lista.forEach(item => {
+            while (sel.options.length > 0) sel.remove(0);
+            if (placeholder) {
+                const ph = document.createElement('option');
+                ph.value = '';
+                ph.textContent = placeholder;
+                sel.appendChild(ph);
+            }
+            const sorted = [...lista].sort((a,b) => String(a.Nombre||a.nombre||'').localeCompare(String(b.Nombre||b.nombre||''), 'es'));
+            sorted.forEach(item => {
                 const opt = document.createElement('option');
-                opt.value = item.ID;
-                opt.textContent = item.Nombre;
+                opt.value = item.ID || item.id;
+                opt.textContent = item.Nombre || item.nombre;
                 sel.appendChild(opt);
             });
+        });
         }
 
         function poblarSelectLimpiando(id, lista, placeholder = '') {
@@ -316,7 +325,7 @@
 
         function aplicarFiltroCascada() {
             const selZona = document.getElementById('filtroRegion');
-            const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v);
+            const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v !== '');
             
             const selSucursal = document.getElementById('filtroSucursal');
             const prevSucursal = selSucursal.value;
@@ -324,7 +333,7 @@
                 ? sucursalesAll.filter(s => s.id_zona && zonasIds.includes(String(s.id_zona))) 
                 : sucursalesAll;
             poblarSelectLimpiando('filtroSucursal', sucursalesFiltradas, 'Todas');
-            selSucursal.value = prevSucursal;
+            if (sucursalesFiltradas.some(s => String(s.ID||s.id) === prevSucursal)) selSucursal.value = prevSucursal;
         }
 
 
