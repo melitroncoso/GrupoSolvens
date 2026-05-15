@@ -764,22 +764,6 @@
         document.getElementById('sidebarOverlay').onclick = () => { document.getElementById('sidebarFiltros').classList.remove('activo'); document.getElementById('sidebarOverlay').classList.remove('activo'); document.getElementById('btnToggleSidebar').classList.remove('oculto'); };
 
         // Grupos colapsables
-        document.querySelectorAll('.filtro-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const grupo = header.parentElement;
-                const contenido = header.nextElementSibling;
-                const icono = header.querySelector('.icono-toggle');
-                grupo.classList.toggle('colapsado');
-                if (grupo.classList.contains('colapsado')) {
-                    contenido.style.maxHeight = '0';
-                    icono.style.transform = 'rotate(-90deg)';
-                } else {
-                    contenido.style.maxHeight = contenido.scrollHeight + 'px';
-                    icono.style.transform = 'rotate(0deg)';
-                }
-            });
-        });
-
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializar grupos colapsados
             document.querySelectorAll('.grupo-filtro').forEach(g => {
@@ -787,6 +771,31 @@
                 g.querySelector('.filtro-contenido').style.maxHeight = '0';
                 g.querySelector('.icono-toggle').style.transform = 'rotate(-90deg)';
             });
+
+            // Toggle de grupos — dentro de DOMContentLoaded para que scrollHeight funcione
+            document.querySelectorAll('.filtro-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const grupo = header.parentElement;
+                    const contenido = header.nextElementSibling;
+                    const icono = header.querySelector('.icono-toggle');
+                    grupo.classList.toggle('colapsado');
+                    if (grupo.classList.contains('colapsado')) {
+                        contenido.style.maxHeight = '0';
+                        icono.style.transform = 'rotate(-90deg)';
+                    } else {
+                        // Forzar reflow antes de leer scrollHeight
+                        contenido.style.maxHeight = 'none';
+                        const h = contenido.scrollHeight;
+                        contenido.style.maxHeight = '0';
+                        requestAnimationFrame(() => {
+                            contenido.style.transition = 'max-height 0.25s ease';
+                            contenido.style.maxHeight = h + 'px';
+                        });
+                        icono.style.transform = 'rotate(0deg)';
+                    }
+                });
+            });
+
             cargarVisitasAdmin();
         });
     </script>
