@@ -179,8 +179,21 @@ app.delete('/api/eliminar-cadena/:id', async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/subzonas', async (req, res, next) => {
+    const { id_cadena } = req.query;
     try {
-        const result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM subzona ORDER BY nombre');
+        let result;
+        if (id_cadena) {
+            // Traer solo subzonas que tienen sucursales de esa cadena
+            result = await query(`
+                SELECT DISTINCT sz.id AS "ID", sz.nombre AS "Nombre"
+                FROM subzona sz
+                JOIN sucursal s ON s.id_subzona = sz.id
+                WHERE s.id_cadena = $1
+                ORDER BY sz.nombre
+            `, [id_cadena]);
+        } else {
+            result = await query('SELECT id AS "ID", nombre AS "Nombre" FROM subzona ORDER BY nombre');
+        }
         res.json(result.rows);
     } catch (e) { next(e); }
 });

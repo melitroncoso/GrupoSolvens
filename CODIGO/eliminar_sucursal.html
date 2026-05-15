@@ -168,7 +168,6 @@
             try {
                 const id = selSucursal.value;
                 const res = await fetch(`${URL_BASE}/eliminar-sucursal/${id}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const result = await res.json();
 
                 if (result.success) {
