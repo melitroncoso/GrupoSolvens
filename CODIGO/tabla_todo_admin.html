@@ -11,6 +11,27 @@
     <link rel="stylesheet" href="style/tablas_pendientes.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ═══ MULTISELECT CHECKBOX WIDGET ══════════════════════════════════ -->
+    <style>
+    .ms-wrap { position: relative; width: 100%; }
+    .ms-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; color: #374151; min-height: 38px; text-align: left; transition: border-color .15s; gap: 6px; }
+    .ms-trigger:hover, .ms-trigger.open { border-color: #dc2626; }
+    .ms-trigger .ms-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-trigger .ms-arrow { font-size: 10px; flex-shrink: 0; transition: transform .2s; color: #6b7280; }
+    .ms-trigger.open .ms-arrow { transform: rotate(180deg); }
+    .ms-badge { background: #dc2626; color: #fff; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 18px; text-align: center; flex-shrink: 0; }
+    .ms-panel { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 9999; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); max-height: 240px; overflow-y: auto; display: none; }
+    .ms-panel.open { display: block; }
+    .ms-search { display: flex; align-items: center; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; position: sticky; top: 0; background: #fff; z-index: 1; }
+    .ms-search input { flex: 1; border: none; outline: none; font-size: 13px; color: #374151; background: transparent; }
+    .ms-search i { color: #9ca3af; font-size: 12px; margin-right: 6px; }
+    .ms-all { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f3f4f6; cursor: pointer; color: #374151; }
+    .ms-all:hover { background: #fef2f2; }
+    .ms-option { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; color: #374151; transition: background .1s; }
+    .ms-option:hover { background: #fef2f2; }
+    .ms-option input[type=checkbox] { accent-color: #dc2626; width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+    .ms-option.hidden { display: none; }
+    </style>
 </head>
 
 <body>
@@ -103,9 +124,10 @@
                 </div>
                 <div class="filtro-contenido">
                     <p class="descripcion-filtro">Seleccione la región (zona):</p>
-                    <select class="select-filtro" id="filtroRegion" multiple>
+                    <select class="select-filtro" id="filtroRegion" multiple style="display:none">
                         <option value="">Región (todas)</option>
                     </select>
+                    <div id="msWrapRegion"></div>
                 </div>
             </div>
 
@@ -484,6 +506,71 @@
             const wb = XLSX.utils.table_to_book(table);
             XLSX.writeFile(wb, "Reporte_Productos.xlsx");
         }
+    
+        /* ── Multiselect widget ─────────────────────────────────── */
+        function initMultiSelect(containerId, realSelectId, placeholder) {
+            const container = document.getElementById(containerId);
+            const realSel   = document.getElementById(realSelectId);
+            if (!container || !realSel) return;
+            realSel.style.display = 'none';
+            const wrap = document.createElement('div'); wrap.className = 'ms-wrap';
+            const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'ms-trigger';
+            trigger.innerHTML = `<span class="ms-label">${placeholder}</span><span class="ms-arrow">▼</span>`;
+            const panel = document.createElement('div'); panel.className = 'ms-panel';
+            const searchWrap = document.createElement('div'); searchWrap.className = 'ms-search';
+            searchWrap.innerHTML = '<i class="fas fa-search"></i><input type="text" placeholder="Buscar...">';
+            const searchInput = searchWrap.querySelector('input');
+            const allRow = document.createElement('div'); allRow.className = 'ms-all';
+            const allCb = document.createElement('input'); allCb.type = 'checkbox'; allCb.style.cssText = 'accent-color:#dc2626;width:15px;height:15px;';
+            allRow.appendChild(allCb); allRow.appendChild(document.createTextNode(' Todas'));
+            panel.appendChild(searchWrap); panel.appendChild(allRow);
+            wrap.appendChild(trigger); wrap.appendChild(panel); container.appendChild(wrap);
+            function rebuildOptions() {
+                Array.from(panel.querySelectorAll('.ms-option')).forEach(n => n.remove());
+                Array.from(realSel.options).forEach(opt => {
+                    if (opt.value === '') return;
+                    const row = document.createElement('div'); row.className = 'ms-option'; row.dataset.value = opt.value;
+                    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = opt.value; cb.checked = opt.selected;
+                    const lbl = document.createElement('label'); lbl.textContent = opt.textContent; lbl.style.cursor = 'pointer';
+                    cb.addEventListener('change', () => {
+                        Array.from(realSel.options).forEach(o => { if (o.value === cb.value) o.selected = cb.checked; });
+                        syncAll(); updateTrigger(); realSel.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    row.addEventListener('click', (e) => { if (e.target !== cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); } });
+                    row.appendChild(cb); row.appendChild(lbl); panel.appendChild(row);
+                });
+                syncAll(); updateTrigger();
+            }
+            function syncAll() {
+                const opts = panel.querySelectorAll('.ms-option input[type=checkbox]');
+                const allChecked = opts.length > 0 && Array.from(opts).every(c => c.checked);
+                allCb.checked = allChecked; allCb.indeterminate = !allChecked && Array.from(opts).some(c => c.checked);
+            }
+            function updateTrigger() {
+                const sel = Array.from(realSel.selectedOptions).filter(o => o.value);
+                const labelEl = trigger.querySelector('.ms-label'); let badge = trigger.querySelector('.ms-badge');
+                if (sel.length === 0) { labelEl.textContent = placeholder; if (badge) badge.remove(); }
+                else if (sel.length === 1) { labelEl.textContent = sel[0].textContent; if (badge) badge.remove(); }
+                else { labelEl.textContent = `${sel.length} seleccionadas`; if (!badge) { badge = document.createElement('span'); badge.className = 'ms-badge'; trigger.insertBefore(badge, trigger.querySelector('.ms-arrow')); } badge.textContent = sel.length; }
+            }
+            allRow.addEventListener('click', (e) => {
+                if (e.target !== allCb) { allCb.checked = !allCb.checked; }
+                const check = allCb.checked;
+                panel.querySelectorAll('.ms-option input[type=checkbox]').forEach(cb => {
+                    if (!cb.closest('.ms-option').classList.contains('hidden')) { cb.checked = check; Array.from(realSel.options).forEach(o => { if (o.value === cb.value) o.selected = check; }); }
+                });
+                allCb.indeterminate = false; updateTrigger(); realSel.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            searchInput.addEventListener('input', () => { const q = searchInput.value.toLowerCase(); panel.querySelectorAll('.ms-option').forEach(row => { row.classList.toggle('hidden', !row.querySelector('label').textContent.toLowerCase().includes(q)); }); });
+            searchInput.addEventListener('click', e => e.stopPropagation());
+            trigger.addEventListener('click', (e) => { e.stopPropagation(); const isOpen = panel.classList.contains('open'); document.querySelectorAll('.ms-panel.open').forEach(p => { p.classList.remove('open'); p.previousElementSibling?.classList.remove('open'); }); if (!isOpen) { panel.classList.add('open'); trigger.classList.add('open'); searchInput.focus(); } });
+            document.addEventListener('click', () => { panel.classList.remove('open'); trigger.classList.remove('open'); });
+            panel.addEventListener('click', e => e.stopPropagation());
+            new MutationObserver(() => { rebuildOptions(); }).observe(realSel, { childList: true });
+            rebuildOptions();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { initMultiSelect('msWrapRegion', 'filtroRegion', 'Región (todas)'); });
     </script>
 </body>
 
