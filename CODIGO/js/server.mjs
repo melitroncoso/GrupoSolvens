@@ -1737,20 +1737,52 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
             }
         }
 
-        // 5. Construir filas de respuesta
-        const filas = sucursalesResult.rows.map(suc => {
+        // 5. Identificar qué categorías son de tipo Sí/No (como "Repone Sidra")
+        //    para poder filtrar valores inválidos al armar el reporte
+        const TIPOS_SI_NO = new Set(['sí', 'si', 'no']);
+        const TIPOS_STOCK_NORMALES = new Set(['no hay stock', 'poco stock', 'buen stock', 'mucho stock']);
+
+        const catEsSiNo = {}; // { id_categoria: true/false }
+        for (const cat of categoriasResult.rows) {
+            const nombre = cat.categoria.trim().toLowerCase();
+            catEsSiNo[cat.id] = (nombre === 'repone sidra');
+        }
+
+        // 6. Construir filas de respuesta, limpiando valores inválidos por tipo de categoría
+        const filasRaw = sucursalesResult.rows.map(suc => {
             const visita = visitaMap[suc.id] || null;
-            const stockPorCat = visita ? (stockMap[visita.id_visita] || {}) : {};
+            const stockOriginal = visita ? (stockMap[visita.id_visita] || {}) : {};
+
+            // Limpiar: si la cat es Sí/No y el valor guardado es de stock normal → vaciar
+            //          si la cat es normal y el valor guardado es Sí/No → vaciar
+            const stockLimpio = {};
+            for (const [idCat, tipo] of Object.entries(stockOriginal)) {
+                const tl = (tipo || '').trim().toLowerCase();
+                const esSiNo = catEsSiNo[idCat];
+                if (esSiNo && TIPOS_SI_NO.has(tl))         stockLimpio[idCat] = tipo;
+                else if (!esSiNo && TIPOS_STOCK_NORMALES.has(tl)) stockLimpio[idCat] = tipo;
+                // si el valor no corresponde al tipo de categoría → se descarta (queda vacío)
+            }
+
+            const tieneDatos = visita !== null && Object.keys(stockLimpio).length > 0;
             return {
                 sucursal: suc.nombre_sucursal,
                 fecha: visita ? visita.fecha : null,
-                stock: stockPorCat
+                stock: stockLimpio,
+                tieneDatos   // usado para ordenar en el frontend
             };
         });
 
+        // 7. Ordenar: primero los que tienen datos, luego los que no
+        const conDatos    = filasRaw.filter(f => f.tieneDatos);
+        const sinDatos    = filasRaw.filter(f => !f.tieneDatos);
+        const filas = [...conDatos, ...sinDatos];
+        const indiceSeparador = conDatos.length; // el frontend usa esto para dibujar la línea
+
         res.json({
             categorias: categoriasResult.rows,
-            filas
+            filas,
+            indiceSeparador
         });
     } catch (e) { next(e); }
 });

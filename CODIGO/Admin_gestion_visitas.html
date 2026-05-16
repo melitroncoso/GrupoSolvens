@@ -118,13 +118,22 @@
                 if (!res.ok) throw new Error('Error al obtener datos del servidor');
                 const data = await res.json();
 
-                const { categorias, filas } = data;
+                const { categorias, filas, indiceSeparador } = data;
 
-                // Construir filas del Excel: Sucursal | Fecha | [una col por categoría]
+                // Encabezados: Sucursal | Última Visita | [una col por categoría]
                 const encabezados = ['Sucursal', 'Última Visita'];
                 categorias.forEach(c => encabezados.push(c.categoria));
 
-                const datosExcel = filas.map(fila => {
+                // Construir filas del Excel, insertando fila separadora entre con/sin datos
+                const datosExcel = [];
+                filas.forEach((fila, idx) => {
+                    // Insertar fila separadora justo antes de los sin datos
+                    if (idx === indiceSeparador && indiceSeparador > 0 && indiceSeparador < filas.length) {
+                        const filaSep = { 'Sucursal': '── Sin visita en la semana actual ──', 'Última Visita': '' };
+                        categorias.forEach(c => { filaSep[c.categoria] = ''; });
+                        datosExcel.push(filaSep);
+                    }
+
                     const row = {
                         'Sucursal': fila.sucursal,
                         'Última Visita': fila.fecha
@@ -134,16 +143,31 @@
                     categorias.forEach(c => {
                         row[c.categoria] = fila.stock[c.id] || '';
                     });
-                    return row;
+                    datosExcel.push(row);
                 });
 
                 const hoja  = XLSX.utils.json_to_sheet(datosExcel, { header: encabezados });
                 const libro = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(libro, hoja, 'Categorías del Valle');
 
+                // ── Estilos ─────────────────────────────────────────────────────
                 // Ancho automático de columnas
-                const colWidths = encabezados.map(h => ({ wch: Math.max(h.length, 14) }));
+                const colWidths = encabezados.map(h => ({ wch: Math.max(h.length + 4, 16) }));
                 hoja['!cols'] = colWidths;
+
+                // Resaltar la fila separadora (fondo gris, texto centrado)
+                if (indiceSeparador > 0 && indiceSeparador < filas.length) {
+                    const filaSepExcel = indiceSeparador + 2; // +1 header, +1 porque ya insertamos la sep
+                    for (let c = 0; c < encabezados.length; c++) {
+                        const addr = XLSX.utils.encode_cell({ r: filaSepExcel - 1, c });
+                        if (!hoja[addr]) hoja[addr] = { v: '', t: 's' };
+                        hoja[addr].s = {
+                            fill: { fgColor: { rgb: 'D9D9D9' } },
+                            font: { italic: true, color: { rgb: '555555' } },
+                            alignment: { horizontal: 'center' }
+                        };
+                    }
+                }
 
                 const hoy = new Date().toISOString().slice(0, 10);
                 XLSX.writeFile(libro, `Categorias_Valle_${hoy}.xlsx`);
