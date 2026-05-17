@@ -21,7 +21,7 @@
     padding: 8px 12px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
-    background: #fff;
+    background: #374151;
     cursor: pointer;
     font-size: 13px;
     color: #374151;
@@ -57,7 +57,7 @@
 /* ── Badge de contador ──────────────────────────────────────────────── */
 .ms-badge {
     background: #dc2626;
-    color: #fff;
+    color: #374151;
     font-size: 10px;
     font-weight: 700;
     border-radius: 999px;
@@ -74,7 +74,7 @@
     left: 0;
     right: 0;
     z-index: 9999;
-    background: #fff;
+    background: #374151;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
@@ -95,7 +95,7 @@
     border-bottom: 1px solid #f3f4f6;
     position: sticky;
     top: 0;
-    background: #fff;
+    background: #374151;
     z-index: 1;
 }
 
