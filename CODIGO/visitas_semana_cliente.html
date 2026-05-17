@@ -11,27 +11,7 @@
     <link rel="stylesheet" href="style/vista_fotos.css">
     <link rel="stylesheet" href="style/filtros.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- ═══ MULTISELECT CHECKBOX WIDGET ══════════════════════════════════ -->
-    <style>
-    .ms-wrap { position: relative; width: 100%; }
-    .ms-trigger { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; color: #374151; min-height: 38px; text-align: left; transition: border-color .15s; gap: 6px; }
-    .ms-trigger:hover, .ms-trigger.open { border-color: #dc2626; }
-    .ms-trigger .ms-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ms-trigger .ms-arrow { font-size: 10px; flex-shrink: 0; transition: transform .2s; color: #6b7280; }
-    .ms-trigger.open .ms-arrow { transform: rotate(180deg); }
-    .ms-badge { background: #dc2626; color: #fff; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 18px; text-align: center; flex-shrink: 0; }
-    .ms-panel { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 9999; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); max-height: 240px; overflow-y: auto; display: none; }
-    .ms-panel.open { display: block; }
-    .ms-search { display: flex; align-items: center; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; position: sticky; top: 0; background: #fff; z-index: 1; }
-    .ms-search input { flex: 1; border: none; outline: none; font-size: 13px; color: #374151; background: transparent; }
-    .ms-search i { color: #9ca3af; font-size: 12px; margin-right: 6px; }
-    .ms-all { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f3f4f6; cursor: pointer; color: #374151; }
-    .ms-all:hover { background: #fef2f2; }
-    .ms-option { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; color: #374151; transition: background .1s; }
-    .ms-option:hover { background: #fef2f2; }
-    .ms-option input[type=checkbox] { accent-color: #dc2626; width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
-    .ms-option.hidden { display: none; }
-    </style>
+    <link rel="stylesheet" href="style/filtrosMultiseleccion.css">
 </head>
 
 <body>
