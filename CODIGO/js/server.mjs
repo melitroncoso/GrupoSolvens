@@ -919,7 +919,6 @@ app.get('/api/imagenes-visitas', async (req, res, next) => {
             LEFT JOIN tipo_cadena tc ON ca.id_tipo = tc.id
             JOIN imagen im       ON im.id_visita = v.id
             LEFT JOIN carga c    ON c.id_visita = v.id
-            WHERE v.fecha >= CURRENT_DATE - INTERVAL '15 days'
             ORDER BY v.fecha DESC
         `);
 

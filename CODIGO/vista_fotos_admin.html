@@ -497,26 +497,29 @@
             llenar('filtroZona', makeOptions(visitasData.map(v => v.zona)), 'Zona (todas)');
             llenar('filtroRepositor', makeOptions(visitasData.map(v => v.repositor)), 'Repositor (todos)');
 
-            document.getElementById('filtroZona').addEventListener('change', () => {
+            // Función centralizada para actualizar sucursales y repositores según cliente + zona activos
+            function actualizarCascada() {
                 const selZona = document.getElementById('filtroZona');
                 const zonasIds = Array.from(selZona.selectedOptions).map(o => String(o.value)).filter(v => v);
-                
+                const fCliente = document.getElementById('filtroCliente').value;
+
+                let base = visitasData;
+                if (fCliente) base = base.filter(v => v.cliente === fCliente);
+                if (zonasIds.length > 0) base = base.filter(v => zonasIds.includes(v.zona));
+
                 const selSuc = document.getElementById('filtroSucursal');
                 const prevSuc = selSuc.value;
-                const sucursalesPermitidas = zonasIds.length > 0 
-                    ? visitasData.filter(v => zonasIds.includes(v.zona)).map(v => v.sucursal)
-                    : visitasData.map(v => v.sucursal);
-                llenar('filtroSucursal', makeOptions(sucursalesPermitidas), 'Sucursal (todas)');
-                selSuc.value = prevSuc;
+                llenar('filtroSucursal', makeOptions(base.map(v => v.sucursal)), 'Sucursal (todas)');
+                if ([...selSuc.options].some(o => o.value === prevSuc)) selSuc.value = prevSuc;
 
                 const selRepo = document.getElementById('filtroRepositor');
                 const prevRepo = selRepo.value;
-                const repositoresPermitidos = zonasIds.length > 0
-                    ? visitasData.filter(v => zonasIds.includes(v.zona)).map(v => v.repositor)
-                    : visitasData.map(v => v.repositor);
-                llenar('filtroRepositor', makeOptions(repositoresPermitidos), 'Repositor (todos)');
-                selRepo.value = prevRepo;
-            });
+                llenar('filtroRepositor', makeOptions(base.map(v => v.repositor)), 'Repositor (todos)');
+                if ([...selRepo.options].some(o => o.value === prevRepo)) selRepo.value = prevRepo;
+            }
+
+            document.getElementById('filtroZona').addEventListener('change', actualizarCascada);
+            document.getElementById('filtroCliente').addEventListener('change', actualizarCascada);
         }
 
         function applyFilters() {
@@ -562,7 +565,7 @@
                     }
                 });
             // Disparar change para restablecer cascada
-            document.getElementById('filtroZona').dispatchEvent(new Event('change'));
+            document.getElementById('filtroCliente').dispatchEvent(new Event('change'));
             applyFilters();
         }
 

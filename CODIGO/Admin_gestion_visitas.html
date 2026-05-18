@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="style/inicio.css">
     <link rel="stylesheet" href="style/inicioAdmin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 
 <body>
@@ -122,10 +122,13 @@
 
                 // ── Colores por tipo de stock ──────────────────────────────────
                 const COLORES_STOCK = {
-                    'no hay stock': { bg: 'FF4C4C', font: 'FFFFFF' },
-                    'poco stock':   { bg: 'FFD600', font: '5C4A00' },
-                    'buen stock':   { bg: '4CAF50', font: 'FFFFFF' },
-                    'mucho stock':  { bg: '1B5E20', font: 'FFFFFF' },
+                    'no hay stock': { bg: 'D32F2F', font: 'FFFFFF' },  // rojo
+                    'poco stock':   { bg: 'F57C00', font: 'FFFFFF' },  // naranja
+                    'buen stock':   { bg: 'AFB42B', font: 'FFFFFF' },  // amarillo verdoso
+                    'mucho stock':  { bg: '388E3C', font: 'FFFFFF' },  // verde
+                    'sí':           { bg: '388E3C', font: 'FFFFFF' },
+                    'si':           { bg: '388E3C', font: 'FFFFFF' },
+                    'no':           { bg: 'D32F2F', font: 'FFFFFF' },
                 };
 
                 // Encabezados: Sucursal | Zona | Última Visita | [una col por categoría]
@@ -261,7 +264,7 @@
                 }
 
                 const hoy = new Date().toISOString().slice(0, 10);
-                XLSX.writeFile(libro, `Categorias_Valle_${hoy}.xlsx`);
+                XLSX.writeFile(libro, `Categorias_Valle_${hoy}.xlsx`, { bookType: 'xlsx', type: 'binary' });
 
             } catch (err) {
                 console.error(err);
