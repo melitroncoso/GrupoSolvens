@@ -120,22 +120,30 @@
 
                 const { categorias, filas, indiceSeparador } = data;
 
-                // Encabezados: Sucursal | Última Visita | [una col por categoría]
-                const encabezados = ['Sucursal', 'Última Visita'];
+                // ── Colores por tipo de stock ──────────────────────────────────
+                const COLORES_STOCK = {
+                    'no hay stock': { bg: 'FF4C4C', font: 'FFFFFF' },
+                    'poco stock':   { bg: 'FFD600', font: '5C4A00' },
+                    'buen stock':   { bg: '4CAF50', font: 'FFFFFF' },
+                    'mucho stock':  { bg: '1B5E20', font: 'FFFFFF' },
+                };
+
+                // Encabezados: Sucursal | Zona | Última Visita | [una col por categoría]
+                const encabezados = ['Sucursal', 'Zona', 'Última Visita'];
                 categorias.forEach(c => encabezados.push(c.categoria));
 
                 // Construir filas del Excel, insertando fila separadora entre con/sin datos
                 const datosExcel = [];
                 filas.forEach((fila, idx) => {
-                    // Insertar fila separadora justo antes de los sin datos
                     if (idx === indiceSeparador && indiceSeparador > 0 && indiceSeparador < filas.length) {
-                        const filaSep = { 'Sucursal': '── Sin visita en la semana actual ──', 'Última Visita': '' };
+                        const filaSep = { 'Sucursal': '── Sin visita en la semana actual ──', 'Zona': '', 'Última Visita': '' };
                         categorias.forEach(c => { filaSep[c.categoria] = ''; });
                         datosExcel.push(filaSep);
                     }
 
                     const row = {
                         'Sucursal': fila.sucursal,
+                        'Zona': fila.zona || '',
                         'Última Visita': fila.fecha
                             ? new Date(fila.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })
                             : ''
@@ -150,22 +158,105 @@
                 const libro = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(libro, hoja, 'Categorías del Valle');
 
-                // ── Estilos ─────────────────────────────────────────────────────
-                // Ancho automático de columnas
-                const colWidths = encabezados.map(h => ({ wch: Math.max(h.length + 4, 16) }));
+                // ── Estilos ────────────────────────────────────────────────────
+                // Anchos de columna
+                const colWidths = encabezados.map((h, i) => ({
+                    wch: i === 0 ? 40 : i === 1 ? 18 : i === 2 ? 16 : Math.max(h.length + 4, 16)
+                }));
                 hoja['!cols'] = colWidths;
 
-                // Resaltar la fila separadora (fondo gris, texto centrado)
-                if (indiceSeparador > 0 && indiceSeparador < filas.length) {
-                    const filaSepExcel = indiceSeparador + 2; // +1 header, +1 porque ya insertamos la sep
+                // Estilo base para encabezados
+                const estiloHeader = {
+                    fill: { fgColor: { rgb: '1A3A5C' } },
+                    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: {
+                        top:    { style: 'thin', color: { rgb: 'AAAAAA' } },
+                        bottom: { style: 'thin', color: { rgb: 'AAAAAA' } },
+                        left:   { style: 'thin', color: { rgb: 'AAAAAA' } },
+                        right:  { style: 'thin', color: { rgb: 'AAAAAA' } },
+                    }
+                };
+                for (let c = 0; c < encabezados.length; c++) {
+                    const addr = XLSX.utils.encode_cell({ r: 0, c });
+                    if (hoja[addr]) hoja[addr].s = estiloHeader;
+                }
+
+                // Número real de filas escritas (incluyendo separadora si aplica)
+                const totalFilas = datosExcel.length;
+
+                // Índice de la fila separadora en datosExcel (si existe)
+                const idxSepExcel = (indiceSeparador > 0 && indiceSeparador < filas.length)
+                    ? indiceSeparador  // separadora se insertó en esa posición
+                    : -1;
+
+                for (let r = 0; r < totalFilas; r++) {
+                    const excelRow = r + 1; // +1 por header
+                    const esSeparadora = (r === idxSepExcel);
+
                     for (let c = 0; c < encabezados.length; c++) {
-                        const addr = XLSX.utils.encode_cell({ r: filaSepExcel - 1, c });
+                        const addr = XLSX.utils.encode_cell({ r: excelRow, c });
                         if (!hoja[addr]) hoja[addr] = { v: '', t: 's' };
-                        hoja[addr].s = {
-                            fill: { fgColor: { rgb: 'D9D9D9' } },
-                            font: { italic: true, color: { rgb: '555555' } },
-                            alignment: { horizontal: 'center' }
-                        };
+
+                        if (esSeparadora) {
+                            // Fila separadora: gris itálica centrada
+                            hoja[addr].s = {
+                                fill: { fgColor: { rgb: 'D9D9D9' } },
+                                font: { italic: true, color: { rgb: '555555' } },
+                                alignment: { horizontal: 'center', vertical: 'center' },
+                            };
+                        } else {
+                            // Fila normal: alternar fondo claro
+                            const esPar = (r % 2 === 0);
+                            const bgBase = esPar ? 'FFFFFF' : 'F4F8FF';
+
+                            // Columnas de stock (índice >= 3): aplicar color según valor
+                            if (c >= 3) {
+                                const valorCelda = (hoja[addr].v || '').toString().trim().toLowerCase();
+                                const color = COLORES_STOCK[valorCelda];
+                                if (color) {
+                                    hoja[addr].s = {
+                                        fill: { fgColor: { rgb: color.bg } },
+                                        font: { bold: true, color: { rgb: color.font }, sz: 10 },
+                                        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                                        border: {
+                                            top:    { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                            bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                            left:   { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                            right:  { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                        }
+                                    };
+                                } else {
+                                    // Celda vacía en columna de stock
+                                    hoja[addr].s = {
+                                        fill: { fgColor: { rgb: bgBase } },
+                                        alignment: { horizontal: 'center', vertical: 'center' },
+                                        border: {
+                                            top:    { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                            bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                            left:   { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                            right:  { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                        }
+                                    };
+                                }
+                            } else {
+                                // Columnas Sucursal / Zona / Última Visita
+                                const alineacion = c === 0
+                                    ? { horizontal: 'left',   vertical: 'center' }
+                                    : { horizontal: 'center', vertical: 'center' };
+                                hoja[addr].s = {
+                                    fill: { fgColor: { rgb: bgBase } },
+                                    font: { sz: 10, bold: c === 0 },
+                                    alignment: alineacion,
+                                    border: {
+                                        top:    { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                        bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                        left:   { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                        right:  { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    }
+                                };
+                            }
+                        }
                     }
                 }
 

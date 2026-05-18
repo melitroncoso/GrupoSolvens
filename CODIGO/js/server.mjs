@@ -769,14 +769,35 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
         // D. Guardar stock por categoría (si viene)
         const stockData = req.body.stock ? JSON.parse(req.body.stock) : {};
         for (const [idCat, idTipoStock] of Object.entries(stockData)) {
-            if (idTipoStock) {
-                await client.query(
-                    `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
-                     VALUES ($1, $2, $3)
-                     ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
-                    [vId, parseInt(idCat), parseInt(idTipoStock)]
-                );
-            }
+            if (!idTipoStock) continue;
+
+            // Validar que el tipo_stock sea compatible con el tipo de categoría:
+            // - Categorías Sí/No (ej: Repone Sidra) → solo aceptan tipo IN ('Sí', 'No')
+            // - Categorías normales de stock         → solo aceptan tipos NOT IN ('Sí', 'No')
+            const catRow = await client.query(
+                `SELECT c.categoria, ts.tipo
+                 FROM categoria c
+                 JOIN tipo_stock ts ON ts.id = $2
+                 WHERE c.id = $1`,
+                [parseInt(idCat), parseInt(idTipoStock)]
+            );
+            if (catRow.rows.length === 0) continue; // categoría o tipo inexistente → saltar
+
+            const nombreCat  = catRow.rows[0].categoria.trim().toLowerCase();
+            const tipoValor  = catRow.rows[0].tipo.trim().toLowerCase();
+            const esSiNo     = nombreCat === 'repone sidra';
+            const tipoEsSiNo = tipoValor === 'sí' || tipoValor === 'si' || tipoValor === 'no';
+
+            // Si la combinación no es válida, ignorar este registro
+            if (esSiNo && !tipoEsSiNo) continue;
+            if (!esSiNo && tipoEsSiNo) continue;
+
+            await client.query(
+                `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
+                [vId, parseInt(idCat), parseInt(idTipoStock)]
+            );
         }
 
         await client.query('COMMIT');
@@ -1686,10 +1707,13 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
             SELECT s.id,
                    ca.nombre || ' - ' || s.calle ||
                    COALESCE(' ' || CAST(s.altura AS VARCHAR), '') ||
-                   ', ' || s.localidad AS nombre_sucursal
+                   ', ' || s.localidad AS nombre_sucursal,
+                   COALESCE(z.nombre, '') AS zona
             FROM abastece a
             JOIN sucursal s ON a.id_sucursal = s.id
             JOIN cadena ca  ON s.id_cadena = ca.id
+            LEFT JOIN subzona sz ON s.id_subzona = sz.id
+            LEFT JOIN zona z    ON sz.id_zona = z.id
             WHERE a.id_cliente = $1
             ORDER BY ca.nombre, s.localidad, s.calle
         `, [ID_CLIENTE_VALLE]);
@@ -1767,6 +1791,7 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
             const tieneDatos = visita !== null && Object.keys(stockLimpio).length > 0;
             return {
                 sucursal: suc.nombre_sucursal,
+                zona: suc.zona,
                 fecha: visita ? visita.fecha : null,
                 stock: stockLimpio,
                 tieneDatos   // usado para ordenar en el frontend
