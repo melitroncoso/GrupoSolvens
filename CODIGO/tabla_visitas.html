@@ -277,8 +277,9 @@
                 const clientes = await resCli.json();
                 poblarSelect('filtroCliente', clientes || [], 'Cliente (todos)');
 
-                // 3. Listener para Cascada de Región
+                // 3. Listeners para Cascada de Región y Cliente
                 document.getElementById('filtroRegion').addEventListener('change', aplicarFiltroCascada);
+                document.getElementById('filtroCliente').addEventListener('change', aplicarFiltroCascada);
             } catch (e) {
                 console.error('Error cargando selectores de filtros:', e);
             }
@@ -315,27 +316,57 @@
             });
         }
 
-        function aplicarFiltroCascada() {
+        async function aplicarFiltroCascada() {
             const selZona = document.getElementById('filtroRegion');
             const zonasIds = Array.from(selZona.selectedOptions)
                 .map(o => String(o.value)).filter(v => v !== '');
 
-            // Sucursales
+            const clienteVal = document.getElementById('filtroCliente').value;
+
+            // Determinar qué sucursales corresponden al cliente seleccionado
+            let sucursalesCliente = null; // null = sin filtro de cliente
+            let zonasClienteIds = null;   // zonas derivadas de las sucursales del cliente
+            if (clienteVal) {
+                try {
+                    const r = await fetch(`${API_BASE}/mis-sucursales?id_cliente=${clienteVal}`);
+                    const data = await r.json();
+                    // data es array de sucursales con {ID, Calle, Altura, Localidad, Cadena}
+                    const idsSucursalesCliente = new Set(data.map(s => String(s.ID)));
+                    sucursalesCliente = sucursalesAll.filter(s => idsSucursalesCliente.has(String(s.ID)));
+                    // Obtener zonas de esas sucursales
+                    zonasClienteIds = new Set(sucursalesCliente.map(s => String(s.id_zona)).filter(Boolean));
+                } catch (e) {
+                    console.error('Error al cargar sucursales del cliente:', e);
+                }
+            }
+
+            // Sucursales: intersección de cliente + zona
             const selSucursal = document.getElementById('filtroSucursal');
             const prevSucursal = selSucursal.value;
-            const sucursalesFiltradas = zonasIds.length > 0
-                ? sucursalesAll.filter(s => s.id_zona && zonasIds.includes(String(s.id_zona)))
-                : sucursalesAll;
+            let sucursalesFiltradas = sucursalesCliente !== null ? sucursalesCliente : sucursalesAll;
+            if (zonasIds.length > 0) {
+                sucursalesFiltradas = sucursalesFiltradas.filter(s => s.id_zona && zonasIds.includes(String(s.id_zona)));
+            }
             poblarSelectLimpiando('filtroSucursal', sucursalesFiltradas, 'Sucursal (todas)');
             if (sucursalesFiltradas.some(s => String(s.ID) === prevSucursal))
                 selSucursal.value = prevSucursal;
 
-            // Repositores
+            // Repositores: filtrar por zonas del cliente y/o zona seleccionada
             const selRepositor = document.getElementById('filtroRepositor');
             if (selRepositor) {
                 const prevRepo = selRepositor.value;
-                const repositoresFiltrados = zonasIds.length > 0
-                    ? repositoresAll.filter(r => r.id_zona && zonasIds.includes(String(r.id_zona)))
+                // Las zonas efectivas = intersección (zonas del cliente) ∩ (zonas del filtro de región)
+                let zonasEfectivas = null;
+                if (zonasClienteIds !== null && zonasIds.length > 0) {
+                    zonasEfectivas = zonasIds.filter(z => zonasClienteIds.has(z));
+                } else if (zonasClienteIds !== null) {
+                    zonasEfectivas = [...zonasClienteIds];
+                } else if (zonasIds.length > 0) {
+                    zonasEfectivas = zonasIds;
+                }
+
+                const repositoresFiltrados = zonasEfectivas !== null
+                    ? repositoresAll.filter(r => r.id_zona && zonasEfectivas.includes(String(r.id_zona)))
                     : repositoresAll;
                 poblarSelectLimpiando('filtroRepositor', repositoresFiltrados, 'Repositor (todos)');
                 if (repositoresFiltrados.some(r => String(r.ID) === prevRepo))
