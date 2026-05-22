@@ -180,6 +180,11 @@
                 mostrarToast('No hay datos para exportar', 'aviso');
                 return;
             }
+            
+            // Obtener el nombre del cliente seleccionado
+            const sel = document.getElementById('selCliente');
+            const nombreCliente = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+
             // preparar datos formato JSON para SheetJS
             const datosParaExportar = ultimaConsulta.map(r => ({
                 Sucursal: r.NombreSucursal || '',
@@ -187,10 +192,23 @@
                 Zona: r.Zona || '',
                 "Imágenes cargadas": r.TieneImagenes ? 'Sí' : 'No'
             }));
-            const hoja = XLSX.utils.json_to_sheet(datosParaExportar);
+            
+            // Agregar el nombre del cliente dentro del archivo Excel (filas 1 y 2)
+            const hoja = XLSX.utils.aoa_to_sheet([
+                ["Cliente:", nombreCliente],
+                []
+            ]);
+            XLSX.utils.sheet_add_json(hoja, datosParaExportar, { origin: "A3" });
+
             const libro = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(libro, hoja, "Sucursales");
-            const nombreArchivo = `Sucursales_Cliente_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            
+            // Limpiar el nombre del cliente para evitar caracteres no válidos en el nombre del archivo
+            const nombreClienteLimpio = nombreCliente ? nombreCliente.replace(/[/\\?%*:|"<>]/g, '-').trim() : '';
+            const nombreArchivo = nombreClienteLimpio 
+                ? `Sucursales_Cliente_${nombreClienteLimpio}_${new Date().toISOString().slice(0, 10)}.xlsx`
+                : `Sucursales_Cliente_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                
             XLSX.writeFile(libro, nombreArchivo);
         }
     </script>

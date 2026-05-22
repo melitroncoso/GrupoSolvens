@@ -228,7 +228,7 @@
                     <div class="visita-header">
                         <h1>${v.cadena}</h1>
                         <div class="sub">
-                            <i class="fas fa-map-marker-alt"></i> ${v.sucursal} - ${v.localidad} | 
+                            <i class="fas fa-map-marker-alt"></i> ${v.sucursal} - ${v.localidad}, ${v.subzona} | 
                             <i class="fas fa-calendar-alt"></i> ${new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })}
                         </div>
                     </div>
@@ -339,7 +339,7 @@
             if (v && contentEl) {
                 contentEl.innerHTML = `
                     <span><i class="fas fa-building"></i> ${v.cadena}</span>
-                    <span><i class="fas fa-map-marker-alt"></i> ${v.sucursal}</span>
+                    <span><i class="fas fa-map-marker-alt"></i> ${v.sucursal} - ${v.localidad}, ${v.subzona}</span>
                     <span><i class="fas fa-calendar-alt"></i> ${new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })}</span>
                 `;
             }
@@ -608,7 +608,7 @@
                             x: 0.5, y: 0.7, w: 9, h: 0.4,
                             fontSize: 24, color: 'DC2626', bold: true
                         });
-                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                        slide.addText(`${v.sucursal} - ${v.localidad}, ${v.subzona}`, {
                             x: 0.5, y: 1.1, w: 9, h: 0.3,
                             fontSize: 16, color: '666666'
                         });
