@@ -6,7 +6,8 @@
 /* ── Contenedor ─────────────────────────────────────────────────────── */
 .ms-wrap {
     position: relative;
-    width: 100%;
+    width: 220px;
+    min-width: 220px;
 }
 
 /* ── Botón disparador ───────────────────────────────────────────────── */
@@ -97,8 +98,8 @@
     box-shadow: 0 12px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35);
     max-height: 260px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: none;
-    /* Scrollbar sutil */
     scrollbar-width: thin;
     scrollbar-color: #333 transparent;
 }

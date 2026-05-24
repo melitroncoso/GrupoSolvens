@@ -167,7 +167,7 @@
             searchWrap.innerHTML = '<i class="fas fa-search"></i><input type="text" placeholder="Buscar...">';
             const searchInput = searchWrap.querySelector('input');
             const allRow = document.createElement('div'); allRow.className = 'ms-all';
-            const allCb = document.createElement('input'); allCb.type = 'checkbox'; allCb.style.cssText = 'accent-color:#dc2626;width:15px;height:15px;';
+            const allCb = document.createElement('input'); allCb.type = 'checkbox';
             allRow.appendChild(allCb); allRow.appendChild(document.createTextNode(' Todas'));
             panel.appendChild(searchWrap); panel.appendChild(allRow);
             wrap.appendChild(trigger); wrap.appendChild(panel); container.appendChild(wrap);
