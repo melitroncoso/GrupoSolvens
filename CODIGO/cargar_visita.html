@@ -161,13 +161,14 @@
         const ID_EXHIBIDO_GONDOLA     = 7;
         const ID_NO_EXHIBIDO_GONDOLA  = 8;
 
-        // Detecta si una categoría es de sidra (para mostrar checkbox de góndola)
+        // Detecta si una categoria es de sidra (para mostrar checkbox de gondola)
         function esCategoríaSidra(nombreCat) {
-            return nombreCat.trim().toLowerCase().includes('sidra');
+            const n = nombreCat.trim().toLowerCase();
+            return n.startsWith('sidra') && n !== 'repone sidra';
         }
 
-        // stockGondola guarda el id_tipo_stock elegido para la góndola de cada categoría sidra
-        // { id_categoria: 7 | 8 }
+        // stockGondola guarda el id_tipo_stock elegido para la gondola de cada categoria sidra
+        // { id_categoria: 7 | 8 }  — se inicializa en 8 (No exhibido) para cada sidra al cargar
         let stockGondola = {};
 
         async function cargarCategoriasStock(idCliente) {
@@ -216,22 +217,22 @@
                                            font-size:12px;color:#aaa;cursor:pointer;transition:.2s;user-select:none;">${t.tipo}</div>`;
                     }).join('');
 
-                    // Checkbox de góndola solo para categorías de sidra
+                    // Checkbox de gondola solo para categorias de sidra (no Repone Sidra)
                     let gondolaHtml = '';
                     if (esCategoríaSidra(cat.categoria)) {
+                        // Inicializar en "No exhibido en gondola" (id 8) por defecto
+                        stockGondola[cat.id] = ID_NO_EXHIBIDO_GONDOLA;
                         gondolaHtml = `
-                        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
-                            <label class="gondola-label" data-catid="${cat.id}"
-                                   style="display:flex;align-items:center;gap:8px;cursor:pointer;
-                                          font-size:12px;color:#aaa;user-select:none;">
-                                <span class="gondola-check" data-catid="${cat.id}"
-                                      onclick="toggleGondola(${cat.id})"
-                                      style="display:inline-flex;align-items:center;justify-content:center;
-                                             width:20px;height:20px;border-radius:5px;border:2px solid #555;
-                                             background:#1a1a1a;cursor:pointer;transition:.2s;flex-shrink:0;">
-                                </span>
-                                Exhibido en góndola
-                            </label>
+                        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;
+                                    padding:8px 10px;background:#1e1e1e;border-radius:8px;border:1px solid #2a2a2a;">
+                            <span class="gondola-check" data-catid="${cat.id}" data-activo="0"
+                                  onclick="toggleGondola(${cat.id})"
+                                  style="display:inline-flex;align-items:center;justify-content:center;
+                                         width:22px;height:22px;border-radius:5px;border:2px solid #555;
+                                         background:#1a1a1a;cursor:pointer;transition:.2s;flex-shrink:0;">
+                            </span>
+                            <span style="font-size:12px;color:#aaa;cursor:pointer;user-select:none;"
+                                  onclick="toggleGondola(${cat.id})">Exhibido en góndola</span>
                         </div>`;
                     }
 
@@ -265,9 +266,8 @@
             });
         };
 
-        // Toggle del checkbox de góndola.
-        // Usa una clave compuesta "gondola_<idCat>" en stockSeleccionado para que
-        // la validación de totalCategorias no se vea afectada (el checkbox es opcional).
+        // Toggle del checkbox de gondola.
+        // El checkbox siempre tiene un valor (7 o 8): arranca en 8 (No exhibido).
         window.toggleGondola = (idCat) => {
             const checkEl = document.querySelector(`.gondola-check[data-catid="${idCat}"]`);
             if (!checkEl) return;
@@ -275,19 +275,19 @@
             const yaActivo = checkEl.dataset.activo === '1';
 
             if (yaActivo) {
-                // Desmarcar → guardar "No exhibido en góndola"
+                // Desmarcar → No exhibido en gondola
                 checkEl.dataset.activo = '0';
-                checkEl.style.background = '#1a1a1a';
-                checkEl.style.borderColor = '#555';
-                checkEl.innerHTML = '';
-                stockGondola[idCat] = ID_NO_EXHIBIDO_GONDOLA;
+                checkEl.style.background   = '#1a1a1a';
+                checkEl.style.borderColor  = '#555';
+                checkEl.innerHTML          = '';
+                stockGondola[idCat]        = ID_NO_EXHIBIDO_GONDOLA;
             } else {
-                // Marcar → guardar "Exhibido en góndola"
+                // Marcar → Exhibido en gondola
                 checkEl.dataset.activo = '1';
-                checkEl.style.background = '#22c55e';
-                checkEl.style.borderColor = '#22c55e';
-                checkEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-                stockGondola[idCat] = ID_EXHIBIDO_GONDOLA;
+                checkEl.style.background   = '#22c55e';
+                checkEl.style.borderColor  = '#22c55e';
+                checkEl.innerHTML          = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polyline points="2,6.5 5.5,10 11,3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                stockGondola[idCat]        = ID_EXHIBIDO_GONDOLA;
             }
         };
 
