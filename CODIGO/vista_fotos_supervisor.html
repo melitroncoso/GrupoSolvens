@@ -13,6 +13,24 @@
     <link rel="stylesheet" href="style/inicio.css">
     <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <link rel="stylesheet" href="style/filtrosMultiseleccion.css">
+    <style>
+        .lightbox-img-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: absolute;
+            top: 0; left: 0;
+            touch-action: none;
+        }
+        .lightbox-img-wrapper .lightbox-img {
+            position: relative;
+            will-change: transform;
+            transform-origin: center center;
+        }
+    </style>
 </head>
 
 <body>
@@ -180,7 +198,9 @@
             <button class="btn-control" id="lightbox-download"><i class="fas fa-download"></i></button>
             <button class="btn-control" id="lightbox-close"><i class="fas fa-times"></i></button>
         </div>
+        <div class="lightbox-img-wrapper" id="lightbox-img-wrapper">
         <img class="lightbox-img" id="lightbox-img" src="" alt="">
+        </div>
         <div class="lightbox-info">
             <div id="lightbox-info-content" style="display:contents;"></div>
             <button class="btn-control-inline" id="lightbox-rotate"><i class="fas fa-sync-alt"></i></button>
@@ -604,6 +624,116 @@
             cargarVisitas();
             initMultiSelect('msWrapZona', 'filtroZona', 'Zona (todas)');
         });
+
+        // ── ZOOM EN LIGHTBOX ────────────────────────────────────────────────────
+        (function initLightboxZoom() {
+            const wrapper = document.getElementById('lightbox-img-wrapper');
+            const img     = document.getElementById('lightbox-img');
+
+            let scale     = 1;
+            let panX      = 0;
+            let panY      = 0;
+            const MIN_SCALE = 1;
+            const MAX_SCALE = 5;
+            const STEP      = 0.4;
+
+            let isDragging  = false;
+            let dragStartX  = 0, dragStartY  = 0;
+            let panStartX   = 0, panStartY   = 0;
+
+            let lastPinchDist  = null;
+            let isTouchPanning = false;
+            let touchStartX    = 0, touchStartY = 0;
+            let panStartXT     = 0, panStartYT  = 0;
+
+            function applyTransform() {
+                const cur      = img.style.transform || '';
+                const rotMatch = cur.match(/rotate\([^)]+\)/);
+                const rotScale = cur.match(/scale\(0\.\d+\)/) || [];
+                const rotPart  = rotMatch   ? rotMatch[0]  + ' ' : '';
+                const rScalePart = rotScale[0] ? rotScale[0] + ' ' : '';
+                img.style.transform = `${rotPart}${rScalePart}scale(${scale}) translate(${panX / scale}px, ${panY / scale}px)`;
+                wrapper.style.cursor = scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default';
+            }
+
+            function clampPan() {
+                const maxPanX = ((scale - 1) / scale) * (wrapper.offsetWidth  / 2) * scale;
+                const maxPanY = ((scale - 1) / scale) * (wrapper.offsetHeight / 2) * scale;
+                panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+                panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+            }
+
+            function zoomBy(delta) {
+                scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale + delta));
+                if (scale === 1) { panX = 0; panY = 0; }
+                clampPan(); applyTransform();
+            }
+
+            function resetZoom() { scale = 1; panX = 0; panY = 0; applyTransform(); }
+
+            const origOpenLightbox = window.openLightbox;
+            window.openLightbox = function(index) { resetZoom(); origOpenLightbox(index); };
+            const origChangeImage = window.changeImage;
+            window.changeImage   = function(delta)  { resetZoom(); origChangeImage(delta);  };
+
+            wrapper.addEventListener('wheel', e => { e.preventDefault(); zoomBy(e.deltaY < 0 ? STEP : -STEP); }, { passive: false });
+
+            wrapper.addEventListener('mousedown', e => {
+                if (scale <= 1) return;
+                isDragging = true; dragStartX = e.clientX; dragStartY = e.clientY;
+                panStartX = panX; panStartY = panY; e.preventDefault();
+            });
+            window.addEventListener('mousemove', e => {
+                if (!isDragging) return;
+                panX = panStartX + (e.clientX - dragStartX);
+                panY = panStartY + (e.clientY - dragStartY);
+                clampPan(); applyTransform();
+            });
+            window.addEventListener('mouseup', () => { isDragging = false; applyTransform(); });
+
+            wrapper.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) {
+                    e.preventDefault();
+                    lastPinchDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+                } else if (e.touches.length === 1 && scale > 1) {
+                    isTouchPanning = true;
+                    touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
+                    panStartXT = panX; panStartYT = panY;
+                }
+            }, { passive: false });
+
+            wrapper.addEventListener('touchmove', e => {
+                if (e.touches.length === 2) {
+                    e.preventDefault();
+                    const dist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+                    if (lastPinchDist !== null) {
+                        scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale + (dist - lastPinchDist) * 0.02));
+                        if (scale === 1) { panX = 0; panY = 0; }
+                        clampPan(); applyTransform();
+                    }
+                    lastPinchDist = dist;
+                } else if (e.touches.length === 1 && isTouchPanning) {
+                    e.preventDefault();
+                    panX = panStartXT + (e.touches[0].clientX - touchStartX);
+                    panY = panStartYT + (e.touches[0].clientY - touchStartY);
+                    clampPan(); applyTransform();
+                }
+            }, { passive: false });
+
+            wrapper.addEventListener('touchend', e => {
+                if (e.touches.length < 2) lastPinchDist = null;
+                if (e.touches.length === 0) isTouchPanning = false;
+            });
+
+            let lastTap = 0;
+            wrapper.addEventListener('touchend', e => {
+                if (e.changedTouches.length !== 1) return;
+                const now = Date.now();
+                if (now - lastTap < 300) { e.preventDefault(); if (scale > 1) resetZoom(); else { scale = 2.5; clampPan(); applyTransform(); } }
+                lastTap = now;
+            });
+        })();
+        // ── FIN ZOOM ─────────────────────────────────────────────────────────────
     </script>
 
     <script src="js/filtros.js"></script>
