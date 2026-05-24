@@ -766,6 +766,9 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
             }
         }
 
+        // IDs de tipo_stock reservados para exhibición en góndola
+        const TIPOS_GONDOLA = new Set([7, 8]); // 7=Exhibido en góndola, 8=No exhibido en góndola
+
         // D. Guardar stock por categoría (si viene)
         const stockData = req.body.stock ? JSON.parse(req.body.stock) : {};
         for (const [idCat, idTipoStock] of Object.entries(stockData)) {
@@ -773,7 +776,7 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
 
             // Validar que el tipo_stock sea compatible con el tipo de categoría:
             // - Categorías Sí/No (ej: Repone Sidra) → solo aceptan tipo IN ('Sí', 'No')
-            // - Categorías normales de stock         → solo aceptan tipos NOT IN ('Sí', 'No')
+            // - Categorías normales de stock         → solo aceptan tipos NOT IN ('Sí', 'No') y NOT IN góndola
             const catRow = await client.query(
                 `SELECT c.categoria, ts.tipo
                  FROM categoria c
@@ -787,16 +790,44 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
             const tipoValor  = catRow.rows[0].tipo.trim().toLowerCase();
             const esSiNo     = nombreCat === 'repone sidra';
             const tipoEsSiNo = tipoValor === 'sí' || tipoValor === 'si' || tipoValor === 'no';
+            const esGondola  = TIPOS_GONDOLA.has(parseInt(idTipoStock));
 
             // Si la combinación no es válida, ignorar este registro
             if (esSiNo && !tipoEsSiNo) continue;
             if (!esSiNo && tipoEsSiNo) continue;
+            if (esGondola) continue; // los de góndola se guardan aparte (ver bloque D2)
 
             await client.query(
                 `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
                  VALUES ($1, $2, $3)
                  ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
                 [vId, parseInt(idCat), parseInt(idTipoStock)]
+            );
+        }
+
+        // D2. Guardar exhibición en góndola por categoría (solo sidras)
+        // El frontend envía stock_gondola: { id_categoria: 7 | 8 }
+        // Se inserta en visita_stock con id_categoria negativo como convención:
+        // -(id_cat) = fila de góndola de esa categoría, sin crear tabla nueva.
+        const gondolaData = req.body.stock_gondola ? JSON.parse(req.body.stock_gondola) : {};
+        for (const [idCat, idTipoGondola] of Object.entries(gondolaData)) {
+            const tipoGondolaInt = parseInt(idTipoGondola);
+            if (!TIPOS_GONDOLA.has(tipoGondolaInt)) continue;
+
+            const catCheck = await client.query(
+                `SELECT categoria FROM categoria WHERE id = $1`,
+                [parseInt(idCat)]
+            );
+            if (catCheck.rows.length === 0) continue;
+            const esSidra = catCheck.rows[0].categoria.trim().toLowerCase().includes('sidra');
+            if (!esSidra) continue;
+
+            // id_categoria negativo = convención "esta fila es góndola de la categoría abs(id)"
+            await client.query(
+                `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
+                [vId, -(parseInt(idCat)), tipoGondolaInt]
             );
         }
 
@@ -1744,7 +1775,8 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
 
         // 4. Para las visitas encontradas, obtener todos los visita_stock de una vez
         const idsVisitas = visitasResult.rows.map(v => v.id_visita);
-        let stockMap = {}; // { id_visita: { id_categoria: tipo_stock } }
+        let stockMap = {};    // { id_visita: { id_categoria: tipo_stock } }
+        let gondolaMap = {};  // { id_visita: { id_categoria_positiva: tipo_gondola } }
 
         if (idsVisitas.length > 0) {
             const stockResult = await query(`
@@ -1756,7 +1788,14 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
 
             for (const row of stockResult.rows) {
                 if (!stockMap[row.id_visita]) stockMap[row.id_visita] = {};
-                stockMap[row.id_visita][row.id_categoria] = row.tipo;
+                if (!gondolaMap[row.id_visita]) gondolaMap[row.id_visita] = {};
+
+                if (row.id_categoria < 0) {
+                    // Fila de góndola: id_categoria negativo es convención
+                    gondolaMap[row.id_visita][Math.abs(row.id_categoria)] = row.tipo;
+                } else {
+                    stockMap[row.id_visita][row.id_categoria] = row.tipo;
+                }
             }
         }
 
@@ -1787,12 +1826,23 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
                 // si el valor no corresponde al tipo de categoría → se descarta (queda vacío)
             }
 
+            // Extraer góndola limpia (solo sidras con valor válido)
+            const gondolaOriginal = visita ? (gondolaMap[visita.id_visita] || {}) : {};
+            const gondolaLimpia = {};
+            for (const [idCat, tipo] of Object.entries(gondolaOriginal)) {
+                const tl = (tipo || '').trim().toLowerCase();
+                if (tl === 'exhibido en góndola' || tl === 'no exhibido en góndola') {
+                    gondolaLimpia[idCat] = tipo;
+                }
+            }
+
             const tieneDatos = visita !== null && Object.keys(stockLimpio).length > 0;
             return {
                 sucursal: suc.nombre_sucursal,
                 zona: suc.zona,
                 fecha: visita ? visita.fecha : null,
                 stock: stockLimpio,
+                gondola: gondolaLimpia,
                 tieneDatos   // usado para ordenar en el frontend
             };
         });
@@ -1840,9 +1890,10 @@ app.get('/api/tipos-stock', async (req, res, next) => {
                 `SELECT id, tipo FROM tipo_stock WHERE tipo IN ('Sí', 'No') ORDER BY tipo DESC`
             );
         } else {
-            // Mostrar todo excepto "Sí" y "No"
+            // Mostrar todo excepto "Sí", "No" y los tipos de góndola (id 7 y 8)
+            // Los tipos de góndola se muestran como checkbox separado en el formulario
             result = await query(
-                `SELECT id, tipo FROM tipo_stock WHERE tipo NOT IN ('Sí', 'No') ORDER BY tipo`
+                `SELECT id, tipo FROM tipo_stock WHERE tipo NOT IN ('Sí', 'No') AND id NOT IN (7, 8) ORDER BY tipo`
             );
         }
 

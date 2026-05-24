@@ -129,18 +129,35 @@
                     'sí':           { bg: '388E3C', font: 'FFFFFF' },
                     'si':           { bg: '388E3C', font: 'FFFFFF' },
                     'no':           { bg: 'D32F2F', font: 'FFFFFF' },
+                    'exhibido en góndola':    { bg: '1565C0', font: 'FFFFFF' },  // azul
+                    'no exhibido en góndola': { bg: '78909C', font: 'FFFFFF' },  // gris
                 };
 
-                // Encabezados: Sucursal | Zona | Última Visita | [una col por categoría]
+                // Detecta si una categoría es de sidra (para agregar col de góndola)
+                const esSidra = c => c.categoria.trim().toLowerCase().includes('sidra');
+
+                // Encabezados: Sucursal | Zona | Última Visita | [stock cat] [góndola si sidra] ...
                 const encabezados = ['Sucursal', 'Zona', 'Última Visita'];
-                categorias.forEach(c => encabezados.push(c.categoria));
+                // Mapa de claves de columna para góndola: id → "Góndola: <nombre>"
+                const keyGondola = {};
+                categorias.forEach(c => {
+                    encabezados.push(c.categoria);
+                    if (esSidra(c)) {
+                        const key = `Góndola: ${c.categoria}`;
+                        keyGondola[c.id] = key;
+                        encabezados.push(key);
+                    }
+                });
 
                 // Construir filas del Excel, insertando fila separadora entre con/sin datos
                 const datosExcel = [];
                 filas.forEach((fila, idx) => {
                     if (idx === indiceSeparador && indiceSeparador > 0 && indiceSeparador < filas.length) {
                         const filaSep = { 'Sucursal': '── Sin visita en la semana actual ──', 'Zona': '', 'Última Visita': '' };
-                        categorias.forEach(c => { filaSep[c.categoria] = ''; });
+                        categorias.forEach(c => {
+                            filaSep[c.categoria] = '';
+                            if (keyGondola[c.id]) filaSep[keyGondola[c.id]] = '';
+                        });
                         datosExcel.push(filaSep);
                     }
 
@@ -153,6 +170,9 @@
                     };
                     categorias.forEach(c => {
                         row[c.categoria] = fila.stock[c.id] || '';
+                        if (keyGondola[c.id]) {
+                            row[keyGondola[c.id]] = (fila.gondola && fila.gondola[c.id]) || '';
+                        }
                     });
                     datosExcel.push(row);
                 });
@@ -164,7 +184,11 @@
                 // ── Estilos ────────────────────────────────────────────────────
                 // Anchos de columna
                 const colWidths = encabezados.map((h, i) => ({
-                    wch: i === 0 ? 40 : i === 1 ? 18 : i === 2 ? 16 : Math.max(h.length + 4, 16)
+                    wch: i === 0 ? 40
+                       : i === 1 ? 18
+                       : i === 2 ? 16
+                       : h.startsWith('Góndola: ') ? 22          // columnas de góndola más angostas
+                       : Math.max(h.length + 4, 16)
                 }));
                 hoja['!cols'] = colWidths;
 
@@ -180,9 +204,23 @@
                         right:  { style: 'thin', color: { rgb: 'AAAAAA' } },
                     }
                 };
+                // Encabezado de góndola: mismo estilo pero azul diferenciado
+                const estiloHeaderGondola = {
+                    fill: { fgColor: { rgb: '1565C0' } },
+                    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: {
+                        top:    { style: 'thin', color: { rgb: 'AAAAAA' } },
+                        bottom: { style: 'thin', color: { rgb: 'AAAAAA' } },
+                        left:   { style: 'thin', color: { rgb: 'AAAAAA' } },
+                        right:  { style: 'thin', color: { rgb: 'AAAAAA' } },
+                    }
+                };
                 for (let c = 0; c < encabezados.length; c++) {
                     const addr = XLSX.utils.encode_cell({ r: 0, c });
-                    if (hoja[addr]) hoja[addr].s = estiloHeader;
+                    if (hoja[addr]) hoja[addr].s = encabezados[c].startsWith('Góndola: ')
+                        ? estiloHeaderGondola
+                        : estiloHeader;
                 }
 
                 // Número real de filas escritas (incluyendo separadora si aplica)
@@ -192,6 +230,10 @@
                 const idxSepExcel = (indiceSeparador > 0 && indiceSeparador < filas.length)
                     ? indiceSeparador  // separadora se insertó en esa posición
                     : -1;
+
+                // Set de índices de columna que corresponden a góndola (para estilo especial)
+                const idxsGondola = new Set();
+                encabezados.forEach((h, i) => { if (h.startsWith('Góndola: ')) idxsGondola.add(i); });
 
                 for (let r = 0; r < totalFilas; r++) {
                     const excelRow = r + 1; // +1 por header
@@ -213,10 +255,11 @@
                             const esPar = (r % 2 === 0);
                             const bgBase = esPar ? 'FFFFFF' : 'F4F8FF';
 
-                            // Columnas de stock (índice >= 3): aplicar color según valor
+                            // Columnas de stock y góndola (índice >= 3): aplicar color según valor
                             if (c >= 3) {
                                 const valorCelda = (hoja[addr].v || '').toString().trim().toLowerCase();
                                 const color = COLORES_STOCK[valorCelda];
+                                // Encabezado de góndola: fondo azul oscuro para distinguir
                                 if (color) {
                                     hoja[addr].s = {
                                         fill: { fgColor: { rgb: color.bg } },
@@ -230,9 +273,10 @@
                                         }
                                     };
                                 } else {
-                                    // Celda vacía en columna de stock
+                                    // Celda vacía: si es columna de góndola, fondo levemente diferenciado
+                                    const bgGondola = idxsGondola.has(c) ? (esPar ? 'EEF4FF' : 'E0ECFF') : bgBase;
                                     hoja[addr].s = {
-                                        fill: { fgColor: { rgb: bgBase } },
+                                        fill: { fgColor: { rgb: bgGondola } },
                                         alignment: { horizontal: 'center', vertical: 'center' },
                                         border: {
                                             top:    { style: 'thin', color: { rgb: 'CCCCCC' } },

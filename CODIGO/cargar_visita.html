@@ -157,6 +157,19 @@
         // Paleta de colores para niveles de stock normales (Sin stock → Mucho)
         const COLORES_STOCK_NORMAL = ['#dc2626', '#f59e0b', '#3b82f6', '#22c55e'];
 
+        // IDs de tipo_stock para exhibición en góndola (deben coincidir con la BD)
+        const ID_EXHIBIDO_GONDOLA     = 7;
+        const ID_NO_EXHIBIDO_GONDOLA  = 8;
+
+        // Detecta si una categoría es de sidra (para mostrar checkbox de góndola)
+        function esCategoríaSidra(nombreCat) {
+            return nombreCat.trim().toLowerCase().includes('sidra');
+        }
+
+        // stockGondola guarda el id_tipo_stock elegido para la góndola de cada categoría sidra
+        // { id_categoria: 7 | 8 }
+        let stockGondola = {};
+
         async function cargarCategoriasStock(idCliente) {
             try {
                 const res = await fetch(`/api/categorias-stock?id_cliente=${idCliente}`);
@@ -171,6 +184,7 @@
 
                 lista.innerHTML = '';
                 stockSeleccionado = {};
+                stockGondola = {};
                 totalCategorias = cats.length;
 
                 // Obtener tipos de stock para cada categoría desde el backend (en paralelo)
@@ -202,9 +216,29 @@
                                            font-size:12px;color:#aaa;cursor:pointer;transition:.2s;user-select:none;">${t.tipo}</div>`;
                     }).join('');
 
+                    // Checkbox de góndola solo para categorías de sidra
+                    let gondolaHtml = '';
+                    if (esCategoríaSidra(cat.categoria)) {
+                        gondolaHtml = `
+                        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+                            <label class="gondola-label" data-catid="${cat.id}"
+                                   style="display:flex;align-items:center;gap:8px;cursor:pointer;
+                                          font-size:12px;color:#aaa;user-select:none;">
+                                <span class="gondola-check" data-catid="${cat.id}"
+                                      onclick="toggleGondola(${cat.id})"
+                                      style="display:inline-flex;align-items:center;justify-content:center;
+                                             width:20px;height:20px;border-radius:5px;border:2px solid #555;
+                                             background:#1a1a1a;cursor:pointer;transition:.2s;flex-shrink:0;">
+                                </span>
+                                Exhibido en góndola
+                            </label>
+                        </div>`;
+                    }
+
                     div.innerHTML = `
                         <p style="font-size:13px;color:#e0e0e0;margin-bottom:10px;font-weight:500;">${cat.categoria}</p>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">${botonesHtml}</div>`;
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">${botonesHtml}</div>
+                        ${gondolaHtml}`;
                     lista.appendChild(div);
                 });
 
@@ -229,6 +263,32 @@
                     btn.style.color       = '#aaa';
                 }
             });
+        };
+
+        // Toggle del checkbox de góndola.
+        // Usa una clave compuesta "gondola_<idCat>" en stockSeleccionado para que
+        // la validación de totalCategorias no se vea afectada (el checkbox es opcional).
+        window.toggleGondola = (idCat) => {
+            const checkEl = document.querySelector(`.gondola-check[data-catid="${idCat}"]`);
+            if (!checkEl) return;
+
+            const yaActivo = checkEl.dataset.activo === '1';
+
+            if (yaActivo) {
+                // Desmarcar → guardar "No exhibido en góndola"
+                checkEl.dataset.activo = '0';
+                checkEl.style.background = '#1a1a1a';
+                checkEl.style.borderColor = '#555';
+                checkEl.innerHTML = '';
+                stockGondola[idCat] = ID_NO_EXHIBIDO_GONDOLA;
+            } else {
+                // Marcar → guardar "Exhibido en góndola"
+                checkEl.dataset.activo = '1';
+                checkEl.style.background = '#22c55e';
+                checkEl.style.borderColor = '#22c55e';
+                checkEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                stockGondola[idCat] = ID_EXHIBIDO_GONDOLA;
+            }
         };
 
         function poblarCadenas(sucursales) {
@@ -594,6 +654,7 @@
             formData.append('id_sucursal', sucursalSel.value);
             formData.append('productos', JSON.stringify(productosParaEnviar));
             formData.append('stock', JSON.stringify(stockSeleccionado));
+            formData.append('stock_gondola', JSON.stringify(stockGondola));
 
             for (let i = 0; i < archivosParaSubir.length; i++) {
                 formData.append('imagenes', archivosParaSubir[i]);
