@@ -766,68 +766,56 @@ app.post('/api/cargar-visita', upload.array('imagenes', 5), async (req, res, nex
             }
         }
 
-        // IDs de tipo_stock reservados para exhibición en góndola
-        const TIPOS_GONDOLA = new Set([7, 8]); // 7=Exhibido en góndola, 8=No exhibido en góndola
-
         // D. Guardar stock por categoría (si viene)
-        const stockData = req.body.stock ? JSON.parse(req.body.stock) : {};
-        for (const [idCat, idTipoStock] of Object.entries(stockData)) {
-            if (!idTipoStock) continue;
-
-            // Validar que el tipo_stock sea compatible con el tipo de categoría:
-            // - Categorías Sí/No (ej: Repone Sidra) → solo aceptan tipo IN ('Sí', 'No')
-            // - Categorías normales de stock         → solo aceptan tipos NOT IN ('Sí', 'No') y NOT IN góndola
-            const catRow = await client.query(
-                `SELECT c.categoria, ts.tipo
-                 FROM categoria c
-                 JOIN tipo_stock ts ON ts.id = $2
-                 WHERE c.id = $1`,
-                [parseInt(idCat), parseInt(idTipoStock)]
-            );
-            if (catRow.rows.length === 0) continue; // categoría o tipo inexistente → saltar
-
-            const nombreCat  = catRow.rows[0].categoria.trim().toLowerCase();
-            const tipoValor  = catRow.rows[0].tipo.trim().toLowerCase();
-            const esSiNo     = nombreCat === 'repone sidra';
-            const tipoEsSiNo = tipoValor === 'sí' || tipoValor === 'si' || tipoValor === 'no';
-            const esGondola  = TIPOS_GONDOLA.has(parseInt(idTipoStock));
-
-            // Si la combinación no es válida, ignorar este registro
-            if (esSiNo && !tipoEsSiNo) continue;
-            if (!esSiNo && tipoEsSiNo) continue;
-            if (esGondola) continue; // los de góndola se guardan aparte (ver bloque D2)
-
-            await client.query(
-                `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
-                 VALUES ($1, $2, $3)
-                 ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
-                [vId, parseInt(idCat), parseInt(idTipoStock)]
-            );
-        }
-
-        // D2. Guardar exhibición en góndola por categoría (solo sidras)
-        // El frontend envía stock_gondola: { id_categoria: 7 | 8 }
-        // Se inserta en visita_stock con id_categoria negativo como convención:
-        // -(id_cat) = fila de góndola de esa categoría, sin crear tabla nueva.
+        // stock_gondola: { id_categoria: 7|8 } — se guarda en la columna id_tipo_gondola
+        // de la misma fila de visita_stock, sin filas extra ni FKs rotas.
+        const stockData   = req.body.stock        ? JSON.parse(req.body.stock)        : {};
         const gondolaData = req.body.stock_gondola ? JSON.parse(req.body.stock_gondola) : {};
-        for (const [idCat, idTipoGondola] of Object.entries(gondolaData)) {
-            const tipoGondolaInt = parseInt(idTipoGondola);
-            if (!TIPOS_GONDOLA.has(tipoGondolaInt)) continue;
 
-            const catCheck = await client.query(
-                `SELECT categoria FROM categoria WHERE id = $1`,
-                [parseInt(idCat)]
-            );
-            if (catCheck.rows.length === 0) continue;
-            const esSidra = catCheck.rows[0].categoria.trim().toLowerCase().includes('sidra');
-            if (!esSidra) continue;
+        // Unir las claves de ambos objetos para recorrer una sola vez por categoría
+        const todasLasCats = new Set([
+            ...Object.keys(stockData),
+            ...Object.keys(gondolaData)
+        ]);
 
-            // id_categoria negativo = convención "esta fila es góndola de la categoría abs(id)"
+        for (const idCatStr of todasLasCats) {
+            const idCat        = parseInt(idCatStr);
+            const idTipoStock  = stockData[idCatStr]   ? parseInt(stockData[idCatStr])   : null;
+            const idTipoGondola= gondolaData[idCatStr] ? parseInt(gondolaData[idCatStr]) : null;
+
+            // Validar categoría y tipo de stock si viene
+            if (idTipoStock) {
+                const catRow = await client.query(
+                    `SELECT c.categoria, ts.tipo
+                     FROM categoria c
+                     JOIN tipo_stock ts ON ts.id = $2
+                     WHERE c.id = $1`,
+                    [idCat, idTipoStock]
+                );
+                if (catRow.rows.length === 0) continue;
+
+                const nombreCat  = catRow.rows[0].categoria.trim().toLowerCase();
+                const tipoValor  = catRow.rows[0].tipo.trim().toLowerCase();
+                const esSiNo     = nombreCat === 'repone sidra';
+                const tipoEsSiNo = tipoValor === 'sí' || tipoValor === 'si' || tipoValor === 'no';
+
+                if (esSiNo && !tipoEsSiNo) continue;
+                if (!esSiNo && tipoEsSiNo) continue;
+            }
+
+            // Validar que id_tipo_gondola sea 7 u 8 si viene
+            const gondolaValida = idTipoGondola && [7, 8].includes(idTipoGondola);
+
+            if (!idTipoStock && !gondolaValida) continue;
+
             await client.query(
-                `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock)
-                 VALUES ($1, $2, $3)
-                 ON CONFLICT (id_visita, id_categoria) DO UPDATE SET id_tipo_stock = $3`,
-                [vId, -(parseInt(idCat)), tipoGondolaInt]
+                `INSERT INTO visita_stock (id_visita, id_categoria, id_tipo_stock, id_tipo_gondola)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (id_visita, id_categoria)
+                 DO UPDATE SET
+                     id_tipo_stock   = COALESCE($3, visita_stock.id_tipo_stock),
+                     id_tipo_gondola = COALESCE($4, visita_stock.id_tipo_gondola)`,
+                [vId, idCat, idTipoStock || null, gondolaValida ? idTipoGondola : null]
             );
         }
 
@@ -1780,21 +1768,23 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
 
         if (idsVisitas.length > 0) {
             const stockResult = await query(`
-                SELECT vs.id_visita, vs.id_categoria, ts.tipo
+                SELECT vs.id_visita,
+                       vs.id_categoria,
+                       ts.tipo                AS tipo_stock,
+                       tg.tipo                AS tipo_gondola
                 FROM visita_stock vs
-                JOIN tipo_stock ts ON vs.id_tipo_stock = ts.id
+                JOIN tipo_stock ts  ON vs.id_tipo_stock = ts.id
+                LEFT JOIN tipo_stock tg ON vs.id_tipo_gondola = tg.id
                 WHERE vs.id_visita = ANY($1)
             `, [idsVisitas]);
 
             for (const row of stockResult.rows) {
-                if (!stockMap[row.id_visita]) stockMap[row.id_visita] = {};
+                if (!stockMap[row.id_visita])   stockMap[row.id_visita]   = {};
                 if (!gondolaMap[row.id_visita]) gondolaMap[row.id_visita] = {};
 
-                if (row.id_categoria < 0) {
-                    // Fila de góndola: id_categoria negativo es convención
-                    gondolaMap[row.id_visita][Math.abs(row.id_categoria)] = row.tipo;
-                } else {
-                    stockMap[row.id_visita][row.id_categoria] = row.tipo;
+                stockMap[row.id_visita][row.id_categoria]   = row.tipo_stock;
+                if (row.tipo_gondola) {
+                    gondolaMap[row.id_visita][row.id_categoria] = row.tipo_gondola;
                 }
             }
         }
