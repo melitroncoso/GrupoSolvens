@@ -134,7 +134,7 @@
                 };
 
                 // Detecta si una categoría es de sidra (para agregar col de góndola)
-                const esSidra = c => c.categoria.trim().toLowerCase().includes('sidra');
+                const esSidra = c => { const n = c.categoria.trim().toLowerCase(); return n.startsWith('sidra') && n !== 'repone sidra'; };
 
                 // Encabezados: Sucursal | Zona | Última Visita | [stock cat] [góndola si sidra] ...
                 const encabezados = ['Sucursal', 'Zona', 'Última Visita'];
