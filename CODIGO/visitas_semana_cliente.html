@@ -117,7 +117,9 @@
             tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
             try {
                 let url = `/api/visitas-semana-cliente?id_cliente=${id}`;
-                if (zonasSeleccionadas.length > 0) url += `&id_zona=${zonasSeleccionadas.join(',')}`;
+                if (zonasSeleccionadas.length > 0) {
+                    url += zonasSeleccionadas.map(z => `&id_zona=${encodeURIComponent(z)}`).join('');
+                }
                 const res = await fetch(url);
                 let rows = await res.json();
 
