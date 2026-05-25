@@ -242,6 +242,13 @@
     box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
 }
 
+.btn-zoom-out-disabled,
+.btn-zoom-in-disabled {
+    opacity: 0.35;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
 .lightbox-prev,
 .lightbox-next {
     position: absolute;
