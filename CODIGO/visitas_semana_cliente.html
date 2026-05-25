@@ -117,9 +117,7 @@
             tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px;"><div class="spinner"></div><p style="margin-top:10px;">Consultando datos...</p></td></tr>';
             try {
                 let url = `/api/visitas-semana-cliente?id_cliente=${id}`;
-                if (zonasSeleccionadas.length > 0) {
-                    url += `&id_zona=${zonasSeleccionadas.map(encodeURIComponent).join(',')}`;
-                }
+                if (zonasSeleccionadas.length > 0) url += `&id_zona=${zonasSeleccionadas.join(',')}`;
                 const res = await fetch(url);
                 let rows = await res.json();
 
@@ -169,7 +167,7 @@
             searchWrap.innerHTML = '<i class="fas fa-search"></i><input type="text" placeholder="Buscar...">';
             const searchInput = searchWrap.querySelector('input');
             const allRow = document.createElement('div'); allRow.className = 'ms-all';
-            const allCb = document.createElement('input'); allCb.type = 'checkbox';
+            const allCb = document.createElement('input'); allCb.type = 'checkbox'; allCb.style.cssText = 'accent-color:#dc2626;width:15px;height:15px;';
             allRow.appendChild(allCb); allRow.appendChild(document.createTextNode(' Todas'));
             panel.appendChild(searchWrap); panel.appendChild(allRow);
             wrap.appendChild(trigger); wrap.appendChild(panel); container.appendChild(wrap);

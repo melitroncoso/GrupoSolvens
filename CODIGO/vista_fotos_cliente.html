@@ -176,12 +176,6 @@
         </button>
 
         <div class="lightbox-controls">
-            <button class="btn-control" id="lightbox-zoom-in" title="Acercar">
-                <i class="fas fa-search-plus"></i>
-            </button>
-            <button class="btn-control btn-zoom-out-disabled" id="lightbox-zoom-out" title="Alejar" disabled>
-                <i class="fas fa-search-minus"></i>
-            </button>
             <button class="btn-control" id="lightbox-download" title="Descargar">
                 <i class="fas fa-download"></i>
             </button>
@@ -739,17 +733,6 @@
                 const rScalePart = rotScale[0] ? rotScale[0] + ' ' : '';
                 img.style.transform = `${rotPart}${rScalePart}scale(${scale}) translate(${panX / scale}px, ${panY / scale}px)`;
                 wrapper.style.cursor = scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default';
-                // Actualizar estado de los botones zoom
-                const btnZoomOut = document.getElementById('lightbox-zoom-out');
-                const btnZoomIn  = document.getElementById('lightbox-zoom-in');
-                if (btnZoomOut) {
-                    btnZoomOut.disabled = scale <= MIN_SCALE;
-                    btnZoomOut.classList.toggle('btn-zoom-out-disabled', scale <= MIN_SCALE);
-                }
-                if (btnZoomIn) {
-                    btnZoomIn.disabled = scale >= MAX_SCALE;
-                    btnZoomIn.classList.toggle('btn-zoom-in-disabled', scale >= MAX_SCALE);
-                }
             }
 
             function clampPan() {
@@ -778,9 +761,6 @@
             window.changeImage = function(delta) { resetZoom(); origChangeImage(delta); };
 
             wrapper.addEventListener('wheel', e => { e.preventDefault(); zoomBy(e.deltaY < 0 ? STEP : -STEP); }, { passive: false });
-
-            document.getElementById('lightbox-zoom-in') .addEventListener('click', () => zoomBy(STEP));
-            document.getElementById('lightbox-zoom-out').addEventListener('click', () => zoomBy(-STEP));
 
             wrapper.addEventListener('mousedown', e => {
                 if (scale <= 1) return;

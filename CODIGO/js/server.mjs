@@ -1626,14 +1626,8 @@ app.get('/api/visitas-semana-cliente', async (req, res, next) => {
         const params = [id_cliente];
         let zonaFilter = '';
         if (id_zona) {
-            const zonas = Array.isArray(id_zona)
-                ? id_zona
-                : String(id_zona).split(',').map(z => z.trim()).filter(Boolean);
-            const zonaIds = zonas.map(Number).filter(n => Number.isInteger(n));
-            if (zonaIds.length > 0) {
-                params.push(zonaIds);
-                zonaFilter = `AND sz.id_zona = ANY($${params.length}::int[])`;
-            }
+            params.push(id_zona);
+            zonaFilter = `AND sz.id_zona = $${params.length}`;
         }
 
         const result = await query(`
