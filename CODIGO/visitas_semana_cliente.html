@@ -118,7 +118,7 @@
             try {
                 let url = `/api/visitas-semana-cliente?id_cliente=${id}`;
                 if (zonasSeleccionadas.length > 0) {
-                    url += zonasSeleccionadas.map(z => `&id_zona=${encodeURIComponent(z)}`).join('');
+                    url += `&id_zona=${zonasSeleccionadas.map(encodeURIComponent).join(',')}`;
                 }
                 const res = await fetch(url);
                 let rows = await res.json();
