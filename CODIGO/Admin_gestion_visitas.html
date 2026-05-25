@@ -133,6 +133,9 @@
                     'no exhibido en góndola': { bg: '78909C', font: 'FFFFFF' },  // gris
                 };
 
+                // Excluir "Repone Sidra" del Excel
+                categorias = categorias.filter(c => c.categoria.trim().toLowerCase() !== 'repone sidra');
+
                 // Detecta si una categoría es de sidra (para agregar col de góndola)
                 const esSidra = c => { const n = c.categoria.trim().toLowerCase(); return n.startsWith('sidra') && n !== 'repone sidra'; };
 

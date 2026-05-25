@@ -183,21 +183,24 @@
                     return;
                 }
 
+                // Excluir "Repone Sidra" del formulario
+                const catsFiltered = cats.filter(c => c.categoria.trim().toLowerCase() !== 'repone sidra');
+
                 lista.innerHTML = '';
                 stockSeleccionado = {};
                 stockGondola = {};
-                totalCategorias = cats.length;
+                totalCategorias = catsFiltered.length;
 
                 // Obtener tipos de stock para cada categoría desde el backend (en paralelo)
                 const tiposPorCat = await Promise.all(
-                    cats.map(cat =>
+                    catsFiltered.map(cat =>
                         fetch(`/api/tipos-stock?id_categoria=${cat.id}`)
                             .then(r => r.json())
                             .catch(() => [])
                     )
                 );
 
-                cats.forEach((cat, idx) => {
+                catsFiltered.forEach((cat, idx) => {
                     const tipos = tiposPorCat[idx] || [];
                     const div = document.createElement('div');
                     div.style.cssText = 'padding:14px 0;border-bottom:1px solid #2a2a2a;';
