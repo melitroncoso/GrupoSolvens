@@ -471,17 +471,20 @@
 
             previewContenedor.innerHTML = '';
             for (const file of Array.from(this.files)) {
-                const url = await obtenerPreviewUrl(file);
+                let url = null;
+                try {
+                    url = await obtenerPreviewUrl(file);
+                } catch (_) { /* url queda null */ }
                 const img = document.createElement('img');
                 if (url) {
                     img.src = url;
                     img.className = 'preview-img';
                     img.onload = () => URL.revokeObjectURL(url);
                 } else {
-                    // HEIC no convertible: mostrar ícono placeholder
+                    // HEIC no previsualizable: mostrar ícono placeholder
                     img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="8" fill="%23333"/><text x="40" y="48" text-anchor="middle" fill="%23aaa" font-size="28">📷</text></svg>';
                     img.className = 'preview-img';
-                    img.title = file.name;
+                    img.title = file.name + ' (se convertirá al enviar)';
                 }
                 previewContenedor.appendChild(img);
             }
@@ -530,47 +533,66 @@
         });
 
         /**
-         * Convierte un File HEIC/HEIF a JPEG usando un <img> + canvas.
-         * En navegadores modernos de Android (Chrome 90+) createImageBitmap
-         * puede decodificar HEIC; en los que no pueden, enviamos el archivo
-         * tal cual y dejamos que sharp en el servidor lo maneje.
+         * Convierte un File HEIC/HEIF a JPEG usando:
+         *   1. createImageBitmap con el tipo MIME correcto (Chrome en Android puede decodificar HEIC).
+         *   2. Si falla, usa la librería heic2any (cargada dinámicamente) que decodifica en JS puro.
+         *   3. Si todo falla, lanza un error descriptivo para que el usuario sepa qué pasó.
          */
         const heicToJpeg = async file => {
+            const outName = file.name.replace(/\.[^.]+$/, '.jpg');
+
+            // Intento 1: createImageBitmap nativo (funciona en Chrome 94+ para HEIC en algunos dispositivos)
             try {
                 const ab = await readFileAsArrayBuffer(file);
-                const bitmap = await createImageBitmap(new Blob([ab], { type: 'image/jpeg' }));
+                // Usamos el tipo MIME real del archivo, no 'image/jpeg'
+                const mimeReal = file.type && file.type !== 'application/octet-stream' ? file.type : 'image/heic';
+                const bitmap = await createImageBitmap(new Blob([ab], { type: mimeReal }));
                 const canvas = document.createElement('canvas');
                 canvas.width  = bitmap.width;
                 canvas.height = bitmap.height;
                 canvas.getContext('2d').drawImage(bitmap, 0, 0);
                 const blob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
-                const outName = file.name.replace(/\.[^.]+$/, '.jpg');
                 return new File([blob], outName, { type: 'image/jpeg' });
-            } catch (_) {
-                // El navegador no pudo decodificar HEIC — devolvemos el original
-                // y el servidor (sharp con libheif) se encargará.
-                return file;
-            }
+            } catch (_) { /* seguimos al intento 2 */ }
+
+            // Intento 2: heic2any — decodificador HEIC en JavaScript puro
+            try {
+                // Carga dinámica para no penalizar a usuarios sin HEIC
+                if (!window._heic2any) {
+                    await new Promise((res, rej) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+                        s.onload = res;
+                        s.onerror = rej;
+                        document.head.appendChild(s);
+                    });
+                    window._heic2any = window.heic2any;
+                }
+                const blob = await window._heic2any({ blob: file, toType: 'image/jpeg', quality: 0.88 });
+                const outBlob = Array.isArray(blob) ? blob[0] : blob;
+                return new File([outBlob], outName, { type: 'image/jpeg' });
+            } catch (_) { /* seguimos al error final */ }
+
+            // Si ninguno funcionó, lanzamos un error claro
+            throw new Error(`No se pudo convertir la imagen HEIC "${file.name}". Por favor tomá la foto con la cámara desde la app, o convertila a JPG antes de subirla.`);
         };
 
         /**
          * Obtiene un Data-URL apto para mostrar en <img>, independientemente
          * del formato. Para HEIC intenta convertir primero.
+         * Puede lanzar error si la conversión falla.
          */
         const obtenerPreviewUrl = async file => {
             if (esHEIC(file)) {
-                try {
-                    const convertido = await heicToJpeg(file);
-                    if (convertido !== file) return URL.createObjectURL(convertido);
-                } catch (_) { /* fallback a ícono */ }
-                // Ícono genérico si no se pudo convertir
-                return null;
+                // heicToJpeg puede lanzar — el caller decide cómo manejarlo
+                const convertido = await heicToJpeg(file);
+                return URL.createObjectURL(convertido);
             }
             return URL.createObjectURL(file);
         };
 
         const compressImageFile = async (file, maxSize = MAX_IMAGE_SIZE) => {
-            // Convertir HEIC → JPEG primero
+            // Convertir HEIC → JPEG primero (puede lanzar error si el navegador no lo soporta)
             let f = esHEIC(file) ? await heicToJpeg(file) : file;
 
             if (!f.type.startsWith('image/') || f.size <= maxSize) return f;
@@ -619,10 +641,15 @@
 
             for (let i = 0; i < archivos.length; i++) {
                 const archivo = archivos[i];
-                // Siempre procesar: convierte HEIC→JPEG y comprime si es necesario
-                const procesado = await compressImageFile(archivo);
-                archivosParaSubir.push(procesado);
-                if (procesado.size < archivo.size) comprimidas++;
+                try {
+                    // Siempre procesar: convierte HEIC→JPEG y comprime si es necesario
+                    const procesado = await compressImageFile(archivo);
+                    archivosParaSubir.push(procesado);
+                    if (procesado.size < archivo.size) comprimidas++;
+                } catch (convErr) {
+                    mostrarToastError(convErr.message || `No se pudo procesar "${archivo.name}".`);
+                    return;
+                }
             }
 
             /*

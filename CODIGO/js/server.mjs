@@ -40,11 +40,23 @@ const R2_BUCKET   = process.env.R2_BUCKET_NAME;
 const R2_BASE_URL = process.env.R2_PUBLIC_URL; // ej: https://pub-xxx.r2.dev
 
 async function subirImagenR2(buffer, nombreArchivo) {
-    // Convertir cualquier formato (incluyendo HEIC/HEIF) a JPEG mediante sharp.
-    // sharp detecta el tipo de imagen por magic bytes, no por extensión,
-    // por lo que puede manejar HEIC, AVIF, WebP, PNG, TIFF, etc.
-    // Si sharp no tiene soporte nativo para HEIC (libheif no compilado),
-    // intentamos igual y dejamos que falle con un mensaje claro.
+    // Detectar si el archivo sigue siendo HEIC/HEIF (no fue convertido por el frontend).
+    // En ese caso rechazamos con un mensaje claro en lugar del error críptico de libheif.
+    const HEIC_MAGIC = Buffer.from([0x00, 0x00, 0x00]);
+    const isMaybeHeic = (
+        nombreArchivo.match(/\.(heic|heif)$/i) ||
+        (buffer.length > 12 &&
+            buffer.slice(4, 8).toString('ascii') === 'ftyp' &&
+            ['heic','heix','mif1','msf1','hevc','hevx'].some(b => buffer.slice(8, 12).toString('ascii').toLowerCase().startsWith(b.toLowerCase())))
+    );
+
+    if (isMaybeHeic) {
+        throw new Error(
+            'El archivo es HEIC/HEIF y no pudo ser convertido por el dispositivo. ' +
+            'Por favor tomá la foto directamente desde la app o convertila a JPG antes de enviarla.'
+        );
+    }
+
     let sharpInstance;
     try {
         sharpInstance = sharp(buffer, { failOn: 'none' });
