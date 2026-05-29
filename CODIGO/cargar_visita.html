@@ -450,259 +450,268 @@
         });
         */
 
-        // 6. FOTOS
-        inputFotos.addEventListener('change', async function () {
-            const previewContenedor = document.getElementById('previewFotos');
-            const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent;
-            const maxFotos = (nombreCliente && (nombreCliente.toUpperCase().includes('AGD') || nombreCliente.toUpperCase().includes('DEL VALLE'))) ? 5 : 3;
-
-            if (this.files.length > maxFotos) {
-                this.value = '';
-                labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
-                previewContenedor.innerHTML = '';
-                mostrarToastFotos(`Límite superado: solo se permiten ${maxFotos} fotos`);
-                return;
-            }
-
-            const cant = this.files.length;
-            labelFotos.textContent = cant > 0
-                ? `${cant} foto${cant > 1 ? 's' : ''} seleccionada${cant > 1 ? 's' : ''}`
-                : `Seleccionar fotos (máx. ${maxFotos})`;
-
-            previewContenedor.innerHTML = '';
-            for (const file of Array.from(this.files)) {
-                let url = null;
-                try {
-                    url = await obtenerPreviewUrl(file);
-                } catch (_) { /* url queda null */ }
-                const img = document.createElement('img');
-                if (url) {
-                    img.src = url;
-                    img.className = 'preview-img';
-                    img.onload = () => URL.revokeObjectURL(url);
-                } else {
-                    // HEIC no previsualizable: mostrar ícono placeholder
-                    img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="8" fill="%23333"/><text x="40" y="48" text-anchor="middle" fill="%23aaa" font-size="28">📷</text></svg>';
-                    img.className = 'preview-img';
-                    img.title = file.name + ' (se convertirá al enviar)';
-                }
-                previewContenedor.appendChild(img);
-            }
-
-            if (cant === maxFotos) {
-                mostrarToastFotos(`${maxFotos} de ${maxFotos} fotos cargadas — límite alcanzado`);
-            } else if (cant > 0) {
-                mostrarToastFotos(`${cant} de ${maxFotos} foto${cant > 1 ? 's' : ''} cargada${cant > 1 ? 's' : ''}`);
-            }
-        });
-
         // ── UTILIDADES DE IMAGEN ─────────────────────────────────────────────────
-        // Tamaño máximo antes de comprimir (25 MB — el servidor acepta hasta 25 MB)
-        const MAX_IMAGE_SIZE = 25 * 1024 * 1024;
 
-        // Tipos HEIC/HEIF que muchos navegadores Android no pueden mostrar ni subir bien
+        // Target: 2 MB por foto. El servidor igual recomprime con sharp, pero
+        // así el upload en mobile es rápido y no hay timeouts.
+        const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+
         const HEIC_TYPES = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'];
         const esHEIC = file =>
-            HEIC_TYPES.includes(file.type.toLowerCase()) ||
+            HEIC_TYPES.includes((file.type || '').toLowerCase()) ||
             /\.heic$/i.test(file.name) ||
             /\.heif$/i.test(file.name);
 
-        const readFileAsArrayBuffer = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(file);
-        });
-
         const readFileAsDataURL = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
+            reader.onload  = () => resolve(reader.result);
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
 
         const loadImage = src => new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = () => resolve(img);
+            img.onload  = () => resolve(img);
             img.onerror = reject;
             img.src = src;
         });
 
         const canvasToBlob = (canvas, type, quality) => new Promise((resolve, reject) => {
-            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se pudo crear blob')), type, quality);
+            canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob falló')), type, quality);
         });
 
+        // Race: limita cualquier Promise a ms milisegundos
+        const withTimeout = (promise, ms, msg) =>
+            Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
+            ]);
+
         /**
-         * Convierte un File HEIC/HEIF a JPEG usando:
-         *   1. createImageBitmap con el tipo MIME correcto (Chrome en Android puede decodificar HEIC).
-         *   2. Si falla, usa la librería heic2any (cargada dinámicamente) que decodifica en JS puro.
-         *   3. Si todo falla, lanza un error descriptivo para que el usuario sepa qué pasó.
+         * Convierte HEIC → JPEG con tres estrategias en cascada.
+         * Cada intento tiene un timeout explícito para que nunca se cuelgue.
          */
         const heicToJpeg = async file => {
             const outName = file.name.replace(/\.[^.]+$/, '.jpg');
 
-            // Intento 1: createImageBitmap nativo (funciona en Chrome 94+ para HEIC en algunos dispositivos)
+            // Intento 1: createImageBitmap nativo (Chrome/Safari modernos)
+            // Timeout de 6 s — en muchos Android NUNCA resuelve ni rechaza sin esto
             try {
-                const ab = await readFileAsArrayBuffer(file);
-                // Usamos el tipo MIME real del archivo, no 'image/jpeg'
-                const mimeReal = file.type && file.type !== 'application/octet-stream' ? file.type : 'image/heic';
-                const bitmap = await createImageBitmap(new Blob([ab], { type: mimeReal }));
+                const dataUrl = await readFileAsDataURL(file);
+                const blob0   = await fetch(dataUrl).then(r => r.blob());
+                const bitmap  = await withTimeout(
+                    createImageBitmap(blob0),
+                    6000,
+                    'createImageBitmap timeout'
+                );
                 const canvas = document.createElement('canvas');
                 canvas.width  = bitmap.width;
                 canvas.height = bitmap.height;
                 canvas.getContext('2d').drawImage(bitmap, 0, 0);
-                const blob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
-                return new File([blob], outName, { type: 'image/jpeg' });
-            } catch (_) { /* seguimos al intento 2 */ }
+                const outBlob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
+                return new File([outBlob], outName, { type: 'image/jpeg' });
+            } catch (_) { /* timeout o no soportado → siguiente */ }
 
-            // Intento 2: heic2any — decodificador HEIC en JavaScript puro
+            // Intento 2: heic2any (JS puro, funciona en todos los navegadores)
             try {
-                // Carga dinámica para no penalizar a usuarios sin HEIC
                 if (!window._heic2any) {
-                    await new Promise((res, rej) => {
-                        const s = document.createElement('script');
-                        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-                        s.onload = res;
-                        s.onerror = rej;
-                        document.head.appendChild(s);
-                    });
+                    await withTimeout(
+                        new Promise((res, rej) => {
+                            const s = document.createElement('script');
+                            s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+                            s.onload = res; s.onerror = rej;
+                            document.head.appendChild(s);
+                        }),
+                        15000, 'heic2any load timeout'
+                    );
                     window._heic2any = window.heic2any;
                 }
-                const blob = await window._heic2any({ blob: file, toType: 'image/jpeg', quality: 0.88 });
-                const outBlob = Array.isArray(blob) ? blob[0] : blob;
+                const result = await withTimeout(
+                    window._heic2any({ blob: file, toType: 'image/jpeg', quality: 0.88 }),
+                    30000, 'heic2any convert timeout'
+                );
+                const outBlob = Array.isArray(result) ? result[0] : result;
                 return new File([outBlob], outName, { type: 'image/jpeg' });
-            } catch (_) { /* seguimos al error final */ }
+            } catch (_) { /* fallo → siguiente */ }
 
-            // Si ninguno funcionó, lanzamos un error claro
-            throw new Error(`No se pudo convertir la imagen HEIC "${file.name}". Por favor tomá la foto con la cámara desde la app, o convertila a JPG antes de subirla.`);
+            // Intento 3: enviar tal cual y dejar que sharp en el servidor lo maneje
+            // (Render tiene libheif compilado, así que esto funciona)
+            return file;
         };
 
         /**
-         * Obtiene un Data-URL apto para mostrar en <img>, independientemente
-         * del formato. Para HEIC intenta convertir primero.
-         * Puede lanzar error si la conversión falla.
+         * Comprime un archivo al target MAX_IMAGE_SIZE.
+         * Convierte HEIC → JPEG antes de comprimir.
+         * Tiene un límite de iteraciones para que NUNCA se cuelgue.
          */
-        const obtenerPreviewUrl = async file => {
-            if (esHEIC(file)) {
-                // heicToJpeg puede lanzar — el caller decide cómo manejarlo
-                const convertido = await heicToJpeg(file);
-                return URL.createObjectURL(convertido);
-            }
-            return URL.createObjectURL(file);
-        };
-
-        const compressImageFile = async (file, maxSize = MAX_IMAGE_SIZE) => {
-            // Convertir HEIC → JPEG primero (puede lanzar error si el navegador no lo soporta)
+        const procesarImagen = async file => {
+            // 1. Convertir HEIC si es necesario
             let f = esHEIC(file) ? await heicToJpeg(file) : file;
 
-            if (!f.type.startsWith('image/') || f.size <= maxSize) return f;
+            // 2. Si ya está dentro del target, listo
+            if (!f.type.startsWith('image/') || f.size <= MAX_IMAGE_SIZE) return f;
 
+            // 3. Comprimir con canvas hasta llegar al target o agotar intentos
             const dataUrl = await readFileAsDataURL(f);
             const img     = await loadImage(dataUrl);
 
-            let quality    = 0.92;
-            const minQuality = 0.25;
+            let quality    = 0.88;
             let scale      = 1;
             let blob       = null;
-            let outputType = f.type;
+            let outputType = 'image/jpeg'; // siempre JPEG para máxima compatibilidad
+            const MAX_ITER = 20;
 
-            while (true) {
+            for (let iter = 0; iter < MAX_ITER; iter++) {
                 const canvas = document.createElement('canvas');
-                canvas.width  = Math.max(1, Math.floor(img.naturalWidth  * scale));
-                canvas.height = Math.max(1, Math.floor(img.naturalHeight * scale));
+                // Máximo 1600 px en el lado largo para mobile
+                const maxDim = 1600;
+                const ratio  = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+                canvas.width  = Math.max(1, Math.floor(img.naturalWidth  * ratio * scale));
+                canvas.height = Math.max(1, Math.floor(img.naturalHeight * ratio * scale));
                 canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                 blob = await canvasToBlob(canvas, outputType, quality);
 
-                if (blob.size <= maxSize) break;
+                if (blob.size <= MAX_IMAGE_SIZE) break;
 
-                if (quality > minQuality)    { quality = Math.max(minQuality, quality - 0.12); continue; }
-                if (scale > 0.4)             { scale *= 0.85; continue; }
-                if (outputType !== 'image/jpeg') { outputType = 'image/jpeg'; quality = 0.75; continue; }
-                break;
+                if (quality > 0.30) { quality = Math.max(0.30, quality - 0.12); continue; }
+                if (scale  > 0.40)  { scale  *= 0.80;                           continue; }
+                break; // no se puede comprimir más — mandamos lo que tenemos
             }
 
-            let outputName = f.name;
-            if (outputType === 'image/jpeg' && !/\.jpe?g$/i.test(outputName)) {
-                outputName = outputName.replace(/\.[^.]+$/, '.jpg');
-            }
-            return new File([blob], outputName, { type: outputType });
+            const outName = f.name.replace(/\.[^.]+$/, '.jpg');
+            return new File([blob], outName, { type: outputType });
         };
+
+        // ── Caché de fotos ya procesadas (se llenan al seleccionar, no al enviar) ──
+        let fotosListas = []; // Array de File ya comprimidos/convertidos
+
+        // 6. FOTOS — procesa las imágenes en el momento de la selección
+        inputFotos.addEventListener('change', async function () {
+            const previewContenedor = document.getElementById('previewFotos');
+            const nombreCliente = clienteSel.options[clienteSel.selectedIndex]?.textContent || '';
+            const maxFotos = (nombreCliente.toUpperCase().includes('AGD') ||
+                              nombreCliente.toUpperCase().includes('DEL VALLE')) ? 5 : 3;
+
+            // Reset
+            fotosListas = [];
+            previewContenedor.innerHTML = '';
+
+            if (this.files.length === 0) {
+                labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
+                return;
+            }
+
+            if (this.files.length > maxFotos) {
+                this.value = '';
+                labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
+                mostrarToastFotos(`Límite superado: solo se permiten ${maxFotos} fotos`);
+                return;
+            }
+
+            const archivos = Array.from(this.files);
+            const total    = archivos.length;
+            labelFotos.textContent = `Procesando fotos…`;
+
+            for (let i = 0; i < total; i++) {
+                const file = archivos[i];
+                labelFotos.textContent = `Procesando foto ${i + 1} de ${total}…`;
+
+                // Placeholder mientras procesa
+                const placeholder = document.createElement('div');
+                placeholder.style.cssText =
+                    'width:80px;height:80px;border-radius:8px;background:#222;display:flex;' +
+                    'align-items:center;justify-content:center;font-size:22px;flex-shrink:0;';
+                placeholder.textContent = '⏳';
+                previewContenedor.appendChild(placeholder);
+
+                let procesado;
+                try {
+                    procesado = await procesarImagen(file);
+                } catch (err) {
+                    mostrarToastError(`Error procesando "${file.name}": ${err.message}`);
+                    this.value = '';
+                    fotosListas = [];
+                    previewContenedor.innerHTML = '';
+                    labelFotos.textContent = `Seleccionar fotos (máx. ${maxFotos})`;
+                    return;
+                }
+
+                fotosListas.push(procesado);
+
+                // Reemplazar placeholder con preview real
+                const url = URL.createObjectURL(procesado);
+                const imgEl = document.createElement('img');
+                imgEl.src       = url;
+                imgEl.className = 'preview-img';
+                imgEl.onload    = () => URL.revokeObjectURL(url);
+                previewContenedor.replaceChild(imgEl, placeholder);
+            }
+
+            labelFotos.textContent = total === maxFotos
+                ? `${total} de ${maxFotos} fotos — límite alcanzado`
+                : `${total} de ${maxFotos} foto${total > 1 ? 's' : ''} seleccionada${total > 1 ? 's' : ''}`;
+
+            if (total === maxFotos) {
+                mostrarToastFotos(`${maxFotos} de ${maxFotos} fotos cargadas — límite alcanzado`);
+            } else {
+                mostrarToastFotos(`${total} foto${total > 1 ? 's' : ''} lista${total > 1 ? 's' : ''} para enviar`);
+            }
+        });
 
         // 7. SUBMIT
         document.getElementById('visitaForm').addEventListener('submit', async e => {
             e.preventDefault();
 
-            if (!clienteSel.value) { mostrarToastError('Seleccioná un cliente.'); return; }
+            if (!clienteSel.value)  { mostrarToastError('Seleccioná un cliente.');   return; }
             if (!sucursalSel.value) { mostrarToastError('Seleccioná una sucursal.'); return; }
 
-            const archivos = inputFotos.files;
-            const archivosParaSubir = [];
-            let comprimidas = 0;
-
-            for (let i = 0; i < archivos.length; i++) {
-                const archivo = archivos[i];
-                try {
-                    // Siempre procesar: convierte HEIC→JPEG y comprime si es necesario
-                    const procesado = await compressImageFile(archivo);
-                    archivosParaSubir.push(procesado);
-                    if (procesado.size < archivo.size) comprimidas++;
-                } catch (convErr) {
-                    mostrarToastError(convErr.message || `No se pudo procesar "${archivo.name}".`);
-                    return;
-                }
-            }
-
-            /*
-            const productosParaEnviar = Object.keys(datosIngresados)
-                .filter(id => datosIngresados[id].precio !== '' && parseFloat(datosIngresados[id].precio) > 0)
-                .map(id => ({
-                    id_prod: parseInt(id),
-                    precio: parseFloat(datosIngresados[id].precio),
-                    oferta: datosIngresados[id].oferta
-                }));
-            */
-
-            const productosParaEnviar = [];
-
-            if (archivos.length === 0) {
+            if (fotosListas.length === 0) {
                 mostrarToastError('Cargá al menos una foto.');
                 return;
             }
 
             // Validar que todas las categorías de stock estén seleccionadas (solo Del Valle)
-            if (totalCategorias > 0 && Object.keys(stockSeleccionado).length < totalCategorias) {
-                const faltantes = totalCategorias - Object.keys(stockSeleccionado).length;
+            // Las claves gondola_* se excluyen del conteo porque se auto-asignan al renderizar
+            const stockNormalKeys = Object.keys(stockSeleccionado).filter(k => !k.startsWith('gondola_'));
+            if (totalCategorias > 0 && stockNormalKeys.length < totalCategorias) {
+                const faltantes = totalCategorias - stockNormalKeys.length;
                 mostrarToastError(`Completá el stock de todas las categorías. Faltan ${faltantes}.`);
                 return;
             }
 
             if (!idRepo) { mostrarToastError('Sesión expirada.'); return; }
 
+            // Deshabilitar botón para evitar doble envío
+            const btnSubmit = document.querySelector('.btn-registrar');
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin icono-btn"></i>Enviando…';
+
             const formData = new FormData();
-            formData.append('id_repo', idRepo);
+            formData.append('id_repo',    idRepo);
             formData.append('id_cliente', clienteSel.value);
             formData.append('id_sucursal', sucursalSel.value);
-            formData.append('productos', JSON.stringify(productosParaEnviar));
-            formData.append('stock', JSON.stringify(stockSeleccionado));
-            formData.append('stock_gondola', JSON.stringify(stockGondola));
+            formData.append('productos',  JSON.stringify([]));
+            formData.append('stock',      JSON.stringify(stockSeleccionado));
 
-            for (let i = 0; i < archivosParaSubir.length; i++) {
-                formData.append('imagenes', archivosParaSubir[i]);
+            for (const foto of fotosListas) {
+                formData.append('imagenes', foto);
             }
 
             try {
-                const res = await fetch('/api/cargar-visita', { method: 'POST', body: formData });
+                const res  = await fetch('/api/cargar-visita', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.success) {
                     mostrarToast();
-                    setTimeout(() => {
-                        window.location.href = 'inicioRepositor.html';
-                    }, 1600);
+                    setTimeout(() => { window.location.href = 'inicioRepositor.html'; }, 1600);
                 } else {
                     mostrarToastError('Error: ' + (data.error || data.message));
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fas fa-paper-plane icono-btn"></i>Registrar Visita';
                 }
             } catch {
                 mostrarToastError('Error de conexión con el servidor.');
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fas fa-paper-plane icono-btn"></i>Registrar Visita';
             }
         });
 
