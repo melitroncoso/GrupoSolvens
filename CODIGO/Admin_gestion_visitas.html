@@ -118,7 +118,8 @@
                 if (!res.ok) throw new Error('Error al obtener datos del servidor');
                 const data = await res.json();
 
-                const { categorias, filas, indiceSeparador } = data;
+                const { filas, indiceSeparador } = data;
+                let categorias = Array.isArray(data.categorias) ? data.categorias : [];
 
                 // ── Colores por tipo de stock ──────────────────────────────────
                 const COLORES_STOCK = {
