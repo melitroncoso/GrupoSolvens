@@ -539,12 +539,29 @@
             return file;
         };
 
+        // Extensiones de imagen soportadas por el navegador/canvas
+        const EXTENSIONES_SOPORTADAS = /\.(jpe?g|jpg|png|gif|webp|bmp|svg|heic|heif)$/i;
+        const TIPOS_SOPORTADOS = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
+
+        function esFormatoSoportado(file) {
+            const tipoOk = file.type && TIPOS_SOPORTADOS.includes(file.type.toLowerCase());
+            const extOk  = EXTENSIONES_SOPORTADAS.test(file.name);
+            const esHeic = esHEIC(file);
+            return tipoOk || extOk || esHeic;
+        }
+
         /**
          * Comprime un archivo al target MAX_IMAGE_SIZE.
          * Convierte HEIC → JPEG antes de comprimir.
          * Tiene un límite de iteraciones para que NUNCA se cuelgue.
          */
         const procesarImagen = async file => {
+            // 0. Rechazar formatos no soportados (ej: DNG, RAW, CR2, etc.)
+            if (!esFormatoSoportado(file)) {
+                const ext = file.name.split('.').pop().toUpperCase() || 'desconocido';
+                throw new Error(`Formato .${ext} no soportado. Usá JPG, PNG o HEIC.`);
+            }
+
             // 1. Convertir HEIC si es necesario
             let f = esHEIC(file) ? await heicToJpeg(file) : file;
 
