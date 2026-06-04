@@ -457,10 +457,39 @@
         const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
         const HEIC_TYPES = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'];
-        const esHEIC = file =>
-            HEIC_TYPES.includes((file.type || '').toLowerCase()) ||
-            /\.heic$/i.test(file.name) ||
-            /\.heif$/i.test(file.name);
+
+        // Cache para no releer los magic bytes del mismo archivo dos veces
+        const _heicCache = new WeakMap();
+
+        /**
+         * Detección async de HEIC/HEIF.
+         * Chequea MIME/extensión primero (rápido). Si no coincide, lee los primeros 64 bytes
+         * del archivo y busca el box ISO 'ftyp' con marca HEIC.
+         * Esto cubre el caso frecuente donde iPhone/Android comparte el archivo con
+         * extensión .jpg pero el contenido sigue siendo HEIC internamente.
+         */
+        const esHEIC = async file => {
+            if (HEIC_TYPES.includes((file.type || '').toLowerCase())) return true;
+            if (/\.(heic|heif)$/i.test(file.name)) return true;
+            if (_heicCache.has(file)) return _heicCache.get(file);
+            try {
+                const ab = await file.slice(0, 64).arrayBuffer();
+                const b  = new Uint8Array(ab);
+                // Buscar box 'ftyp' (0x66 0x74 0x79 0x70) en los primeros 64 bytes
+                // (algunos iPhones anteponen un box 'free', desplazando ftyp de offset 4)
+                for (let i = 0; i < b.length - 8; i++) {
+                    if (b[i]===0x66 && b[i+1]===0x74 && b[i+2]===0x79 && b[i+3]===0x70) {
+                        const brand = String.fromCharCode(b[i+4],b[i+5],b[i+6],b[i+7]).toLowerCase();
+                        const result = ['heic','heix','mif1','msf1','hevc','hevx','avci','avcs']
+                            .some(br => brand.startsWith(br));
+                        _heicCache.set(file, result);
+                        return result;
+                    }
+                }
+            } catch (_) { /* si no se puede leer, asumir que no es HEIC */ }
+            _heicCache.set(file, false);
+            return false;
+        };
 
         const readFileAsDataURL = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -539,38 +568,32 @@
             return file;
         };
 
-        // Extensiones de imagen soportadas por el navegador/canvas
-        const EXTENSIONES_SOPORTADAS = /\.(jpe?g|jpg|png|gif|webp|bmp|svg|heic|heif)$/i;
-        const TIPOS_SOPORTADOS = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
-
-        function esFormatoSoportado(file) {
-            const tipoOk = file.type && TIPOS_SOPORTADOS.includes(file.type.toLowerCase());
-            const extOk  = EXTENSIONES_SOPORTADAS.test(file.name);
-            const esHeic = esHEIC(file);
-            return tipoOk || extOk || esHeic;
-        }
 
         /**
          * Comprime un archivo al target MAX_IMAGE_SIZE.
          * Convierte HEIC → JPEG antes de comprimir.
+         * Para formatos que el browser no puede renderizar (DNG, TIFF, RAW, etc.)
+         * el canvas fallará silenciosamente y el archivo se envía tal cual al servidor
+         * (Sharp en el servidor los convierte sin problema).
          * Tiene un límite de iteraciones para que NUNCA se cuelgue.
          */
         const procesarImagen = async file => {
-            // 0. Rechazar formatos no soportados (ej: DNG, RAW, CR2, etc.)
-            if (!esFormatoSoportado(file)) {
-                const ext = file.name.split('.').pop().toUpperCase() || 'desconocido';
-                throw new Error(`Formato .${ext} no soportado. Usá JPG, PNG o HEIC.`);
-            }
-
-            // 1. Convertir HEIC si es necesario
-            let f = esHEIC(file) ? await heicToJpeg(file) : file;
+            // 1. Convertir HEIC si es necesario (detección async con magic bytes)
+            let f = (await esHEIC(file)) ? await heicToJpeg(file) : file;
 
             // 2. Si ya está dentro del target, listo
             if (!f.type.startsWith('image/') || f.size <= MAX_IMAGE_SIZE) return f;
 
-            // 3. Comprimir con canvas hasta llegar al target o agotar intentos
-            const dataUrl = await readFileAsDataURL(f);
-            const img     = await loadImage(dataUrl);
+            // 3. Comprimir con canvas hasta llegar al target o agotar intentos.
+            //    Si el browser no puede renderizar el formato (DNG, TIFF, RAW, etc.),
+            //    loadImage falla → devolvemos el archivo tal cual (Sharp lo maneja en el servidor).
+            let img;
+            try {
+                const dataUrl = await readFileAsDataURL(f);
+                img = await loadImage(dataUrl);
+            } catch (_) {
+                return f; // formato no dibujable en canvas → pasa directo al servidor
+            }
 
             let quality    = 0.88;
             let scale      = 1;
@@ -645,7 +668,8 @@
                 try {
                     procesado = await procesarImagen(file);
                 } catch (err) {
-                    mostrarToastError(`Error procesando "${file.name}": ${err.message}`);
+                    const msg = err instanceof Error ? err.message : `No se pudo procesar "${file.name}". Intentá con JPG o PNG.`;
+                    mostrarToastError(msg);
                     this.value = '';
                     fotosListas = [];
                     previewContenedor.innerHTML = '';

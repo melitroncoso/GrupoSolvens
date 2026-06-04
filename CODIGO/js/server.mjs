@@ -40,20 +40,25 @@ const R2_BUCKET   = process.env.R2_BUCKET_NAME;
 const R2_BASE_URL = process.env.R2_PUBLIC_URL; // ej: https://pub-xxx.r2.dev
 
 async function subirImagenR2(buffer, nombreArchivo) {
-    // Detectar si el archivo sigue siendo HEIC/HEIF (no fue convertido por el frontend).
-    // En ese caso rechazamos con un mensaje claro en lugar del error críptico de libheif.
-    const HEIC_MAGIC = Buffer.from([0x00, 0x00, 0x00]);
-    const isMaybeHeic = (
-        nombreArchivo.match(/\.(heic|heif)$/i) ||
-        (buffer.length > 12 &&
-            buffer.slice(4, 8).toString('ascii') === 'ftyp' &&
-            ['heic','heix','mif1','msf1','hevc','hevx'].some(b => buffer.slice(8, 12).toString('ascii').toLowerCase().startsWith(b.toLowerCase())))
-    );
+    // Detectar HEIC/HEIF: busca el box 'ftyp' en los primeros 64 bytes.
+    // Algunos iPhones anteponen un box 'free', por lo que ftyp puede NO estar en offset 4.
+    // También cubre archivos con extensión .jpg pero contenido HEIC (caso común en Android).
+    const esHEICBuffer = (() => {
+        if (nombreArchivo.match(/\.(heic|heif)$/i)) return true;
+        const scanEnd = Math.min(64, buffer.length - 8);
+        for (let i = 0; i < scanEnd; i++) {
+            if (buffer[i]===0x66 && buffer[i+1]===0x74 && buffer[i+2]===0x79 && buffer[i+3]===0x70) {
+                const brand = buffer.slice(i + 4, i + 8).toString('ascii').toLowerCase();
+                return ['heic','heix','mif1','msf1','hevc','hevx','avci','avcs'].some(b => brand.startsWith(b));
+            }
+        }
+        return false;
+    })();
 
-    if (isMaybeHeic) {
+    if (esHEICBuffer) {
         throw new Error(
-            'El archivo es HEIC/HEIF y no pudo ser convertido por el dispositivo. ' +
-            'Por favor tomá la foto directamente desde la app o convertila a JPG antes de enviarla.'
+            'La foto llegó en formato HEIC/iPhone y no pudo ser convertida por el dispositivo. ' +
+            'Abrí la foto en tu galería, compartila como JPG, y volvé a cargarla.'
         );
     }
 
@@ -61,14 +66,21 @@ async function subirImagenR2(buffer, nombreArchivo) {
     try {
         sharpInstance = sharp(buffer, { failOn: 'none' });
     } catch (e) {
-        throw new Error(`No se pudo leer la imagen: ${e.message}`);
+        throw new Error('No se pudo leer la imagen. Intentá con otra foto o en formato JPG.');
     }
 
-    const comprimido = await sharpInstance
-        .rotate()                                              // aplica EXIF orientation automáticamente
-        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
+    let comprimido;
+    try {
+        comprimido = await sharpInstance
+            .rotate()                                              // aplica EXIF orientation automáticamente
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+    } catch (e) {
+        throw new Error(
+            'No se pudo procesar la imagen. Si usás iPhone, compartí la foto como JPG desde tu galería y volvé a intentarlo.'
+        );
+    }
 
     await r2.send(new PutObjectCommand({
         Bucket: R2_BUCKET,
@@ -83,7 +95,7 @@ async function subirImagenR2(buffer, nombreArchivo) {
 // ── MULTER (memoria, sin guardar en disco) ────────────────────────────────────
 // Se acepta hasta 25 MB por archivo para dar margen a HEIC/HEIF sin comprimir.
 // El backend convierte todo a JPEG con sharp antes de subir a R2.
-const ALLOWED_EXTENSIONS = /\.(jpe?g|png|gif|webp|bmp|tiff?|heic|heif|avif|svg)$/i;
+const ALLOWED_EXTENSIONS = /\.(jpe?g|png|gif|webp|bmp|tiff?|heic|heif|avif|svg|dng|raw|cr2|cr3|nef|arw|raf|orf|rw2|pef|srw|x3f)$/i;
 
 const upload = multer({
     storage: multer.memoryStorage(),
