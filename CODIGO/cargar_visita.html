@@ -9,6 +9,15 @@
     <link rel="stylesheet" href="style/shared.css">
     <link rel="stylesheet" href="style/carga_visitas.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Precarga heic2any en background para que esté listo cuando el usuario elija fotos HEIC -->
+    <script>
+        (function() {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+            s.onload = function() { window._heic2any = window.heic2any; };
+            document.head.appendChild(s);
+        })();
+    </script>
 </head>
 
 <body>
@@ -518,30 +527,18 @@
 
         /**
          * Convierte HEIC → JPEG con tres estrategias en cascada.
-         * Cada intento tiene un timeout explícito para que nunca se cuelgue.
+         * ORDEN CORREGIDO: heic2any primero (JS puro, más confiable en Android),
+         * createImageBitmap segundo (falla silenciosamente en algunos Android con
+         * errores nativos del OS que no se propagan como Promise rejection),
+         * fallback al servidor al final.
          */
         const heicToJpeg = async file => {
             const outName = file.name.replace(/\.[^.]+$/, '.jpg');
 
-            // Intento 1: createImageBitmap nativo (Chrome/Safari modernos)
-            // Timeout de 6 s — en muchos Android NUNCA resuelve ni rechaza sin esto
-            try {
-                const dataUrl = await readFileAsDataURL(file);
-                const blob0   = await fetch(dataUrl).then(r => r.blob());
-                const bitmap  = await withTimeout(
-                    createImageBitmap(blob0),
-                    6000,
-                    'createImageBitmap timeout'
-                );
-                const canvas = document.createElement('canvas');
-                canvas.width  = bitmap.width;
-                canvas.height = bitmap.height;
-                canvas.getContext('2d').drawImage(bitmap, 0, 0);
-                const outBlob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
-                return new File([outBlob], outName, { type: 'image/jpeg' });
-            } catch (_) { /* timeout o no soportado → siguiente */ }
-
-            // Intento 2: heic2any (JS puro, funciona en todos los navegadores)
+            // Intento 1: heic2any (JS puro — no depende del decodificador nativo del OS)
+            // Es el más confiable en Android porque evita el error
+            // "heif: Support for this compression format has not been built in"
+            // que lanza el decodificador nativo y no siempre se captura como excepción JS.
             try {
                 if (!window._heic2any) {
                     await withTimeout(
@@ -562,6 +559,25 @@
                 const outBlob = Array.isArray(result) ? result[0] : result;
                 return new File([outBlob], outName, { type: 'image/jpeg' });
             } catch (_) { /* fallo → siguiente */ }
+
+            // Intento 2: createImageBitmap nativo (Chrome/Safari modernos en iOS)
+            // Va segundo porque en Android puede lanzar errores nativos del OS
+            // que no se propagan correctamente como Promise rejection.
+            try {
+                const dataUrl = await readFileAsDataURL(file);
+                const blob0   = await fetch(dataUrl).then(r => r.blob());
+                const bitmap  = await withTimeout(
+                    createImageBitmap(blob0),
+                    6000,
+                    'createImageBitmap timeout'
+                );
+                const canvas = document.createElement('canvas');
+                canvas.width  = bitmap.width;
+                canvas.height = bitmap.height;
+                canvas.getContext('2d').drawImage(bitmap, 0, 0);
+                const outBlob = await canvasToBlob(canvas, 'image/jpeg', 0.88);
+                return new File([outBlob], outName, { type: 'image/jpeg' });
+            } catch (_) { /* timeout o no soportado → siguiente */ }
 
             // Intento 3: enviar tal cual y dejar que sharp en el servidor lo maneje
             // (Render tiene libheif compilado, así que esto funciona)
