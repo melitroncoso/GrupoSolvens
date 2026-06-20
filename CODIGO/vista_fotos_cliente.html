@@ -233,14 +233,7 @@
             visitasData = await res.json();
             const nombreCliente = sessionStorage.getItem('nombreUsuario') || '';
             window._esAGD = nombreCliente.toUpperCase().includes('AGD');
-            if (window._esAGD) {
-                visitasData.sort((a, b) =>
-                    (a.repositor || '').localeCompare(b.repositor || '', 'es') ||
-                    new Date(b.fecha) - new Date(a.fecha)
-                );
-            } else {
-                visitasData.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-            }
+            visitasData.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             if (visitasData.length === 0) {
                 document.getElementById('contenedorVisitas').innerHTML = '<p>No hay imágenes aprobadas.</p>';
                 return;
@@ -642,7 +635,7 @@
                         }
 
                         const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                        slide.addText(`Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                        slide.addText(`Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
                             x: 1.5, y: 0.05, w: 8.3, h: 0.5,
                             fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                         });
@@ -652,16 +645,14 @@
                             x: 0.5, y: 0.7, w: 9, h: 0.4,
                             fontSize: 24, color: 'DC2626', bold: true
                         });
-                        slide.addText(`${v.sucursal} - ${formatUbicacion(v)}`, {
+                        const direccionText = `${v.sucursal} - ${formatUbicacion(v)}`;
+                        const lineaCompleta = (window._esAGD && v.repositor)
+                            ? `${direccionText}  |  Repositor: ${v.repositor}`
+                            : direccionText;
+                        slide.addText(lineaCompleta, {
                             x: 0.5, y: 1.1, w: 9, h: 0.3,
-                            fontSize: 16, color: '666666'
+                            fontSize: 14, color: '666666'
                         });
-                        if (window._esAGD && v.repositor) {
-                            slide.addText(`Repositor: ${v.repositor}`, {
-                                x: 0.5, y: 1.42, w: 9, h: 0.25,
-                                fontSize: 12, color: '444444', italic: true
-                            });
-                        }
 
                         // Layout dinámico centrado para 1, 2 o 3 imágenes
                         const areaY = 1.6, areaW = 9, areaH = 3.8;

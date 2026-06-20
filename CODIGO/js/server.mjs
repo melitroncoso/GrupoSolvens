@@ -1269,7 +1269,7 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                 }
 
                 const fechaStr = new Date(visita.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                slide.addText(`Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                slide.addText(`Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
                     x: 1.5, y: 0.05, w: 8.3, h: 0.5,
                     fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                 });
@@ -1854,7 +1854,7 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
                 }
             }
 
-            const tieneDatos = visita !== null && Object.keys(stockLimpio).length > 0;
+            const tieneDatos = visita !== null;
             return {
                 sucursal: suc.nombre_sucursal,
                 zona: suc.zona,

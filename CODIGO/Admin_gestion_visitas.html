@@ -156,8 +156,8 @@
                 // Construir filas del Excel, insertando fila separadora entre con/sin datos
                 const datosExcel = [];
                 filas.forEach((fila, idx) => {
-                    if (idx === indiceSeparador && indiceSeparador > 0 && indiceSeparador < filas.length) {
-                        const filaSep = { 'Sucursal': '── Sin visita en la semana actual ──', 'Zona': '', 'Última Visita': '' };
+                    if (idx === indiceSeparador && indiceSeparador >= 0 && indiceSeparador < filas.length) {
+                        const filaSep = { 'Sucursal': '── Sucursales nunca visitadas ──', 'Zona': '', 'Última Visita': '' };
                         categorias.forEach(c => {
                             filaSep[c.categoria] = '';
                             if (keyGondola[c.id]) filaSep[keyGondola[c.id]] = '';
@@ -170,7 +170,7 @@
                         'Zona': fila.zona || '',
                         'Última Visita': fila.fecha
                             ? new Date(fila.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })
-                            : ''
+                            : 'Sin visitas'
                     };
                     categorias.forEach(c => {
                         row[c.categoria] = fila.stock[c.id] || '';
@@ -231,7 +231,7 @@
                 const totalFilas = datosExcel.length;
 
                 // Índice de la fila separadora en datosExcel (si existe)
-                const idxSepExcel = (indiceSeparador > 0 && indiceSeparador < filas.length)
+                const idxSepExcel = (indiceSeparador >= 0 && indiceSeparador < filas.length)
                     ? indiceSeparador  // separadora se insertó en esa posición
                     : -1;
 
