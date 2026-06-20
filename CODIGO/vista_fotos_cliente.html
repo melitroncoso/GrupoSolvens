@@ -231,7 +231,16 @@
                 return;
             }
             visitasData = await res.json();
-            visitasData.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            const nombreCliente = sessionStorage.getItem('nombreUsuario') || '';
+            window._esAGD = nombreCliente.toUpperCase().includes('AGD');
+            if (window._esAGD) {
+                visitasData.sort((a, b) =>
+                    (a.repositor || '').localeCompare(b.repositor || '', 'es') ||
+                    new Date(b.fecha) - new Date(a.fecha)
+                );
+            } else {
+                visitasData.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            }
             if (visitasData.length === 0) {
                 document.getElementById('contenedorVisitas').innerHTML = '<p>No hay imágenes aprobadas.</p>';
                 return;
@@ -263,6 +272,7 @@
                         <div class="sub">
                             <i class="fas fa-map-marker-alt"></i> ${v.sucursal} - ${formatUbicacion(v)} | 
                             <i class="fas fa-calendar-alt"></i> ${new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })}
+                            ${window._esAGD && v.repositor ? ' | <i class="fas fa-user"></i> ' + v.repositor : ''}
                         </div>
                     </div>
                     <div class="galeria-grid">
@@ -374,6 +384,7 @@
                     <span><i class="fas fa-building"></i> ${v.cadena}</span>
                     <span><i class="fas fa-map-marker-alt"></i> ${v.sucursal} - ${formatUbicacion(v)}</span>
                     <span><i class="fas fa-calendar-alt"></i> ${new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' })}</span>
+                    ${window._esAGD && v.repositor ? `<span><i class="fas fa-user"></i> ${v.repositor}</span>` : ''}
                 `;
             }
         }
@@ -645,6 +656,12 @@
                             x: 0.5, y: 1.1, w: 9, h: 0.3,
                             fontSize: 16, color: '666666'
                         });
+                        if (window._esAGD && v.repositor) {
+                            slide.addText(`Repositor: ${v.repositor}`, {
+                                x: 0.5, y: 1.42, w: 9, h: 0.25,
+                                fontSize: 12, color: '444444', italic: true
+                            });
+                        }
 
                         // Layout dinámico centrado para 1, 2 o 3 imágenes
                         const areaY = 1.6, areaW = 9, areaH = 3.8;
