@@ -1772,7 +1772,7 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
             [ID_CLIENTE_VALLE]
         );
 
-        // 3. Última visita de la semana actual por sucursal (para el Valle)
+        // 3. Última visita registrada por sucursal (para el Valle), sin límite de fecha
         const visitasResult = await query(`
             SELECT DISTINCT ON (v.id_sucursal)
                    v.id      AS id_visita,
@@ -1780,8 +1780,6 @@ app.get('/api/reporte-categorias-valle', async (req, res, next) => {
                    v.id_sucursal
             FROM visita v
             WHERE v.id_cliente = $1
-              AND v.fecha >= date_trunc('week', CURRENT_DATE)
-              AND v.fecha <  date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
             ORDER BY v.id_sucursal, v.fecha DESC, v.id DESC
         `, [ID_CLIENTE_VALLE]);
 
