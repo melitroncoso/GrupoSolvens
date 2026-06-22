@@ -638,6 +638,20 @@
             btn.disabled = true;
 
             try {
+                const clienteFiltro = document.getElementById('filtroCliente').value;
+                const esAGD = clienteFiltro && clienteFiltro.trim().toUpperCase().includes('AGD');
+
+                let visitsToExport = [...filteredVisitas];
+                if (esAGD) {
+                    visitsToExport.sort((a, b) => {
+                        const repoA = (a.repositor || '').trim();
+                        const repoB = (b.repositor || '').trim();
+                        const comp = repoA.localeCompare(repoB, 'es');
+                        if (comp !== 0) return comp;
+                        return new Date(b.fecha) - new Date(a.fecha);
+                    });
+                }
+
                 const pptx = new PptxGenJS();
                 pptx.layout = 'LAYOUT_16x9';
 
@@ -671,10 +685,10 @@
                     if (headerLogoW > 1.8) { headerLogoW = 1.8; headerLogoH = headerLogoW / ratio; }
                 }
 
-                const clienteFiltro = document.getElementById('filtroCliente').value;
                 const tituloReporte = clienteFiltro ? `Cliente: ${clienteFiltro}` : 'Todos los Clientes';
+                const slideTitle = esAGD ? 'Reporte Fotográfico de Visitas' : 'Reporte de Evidencia Fotográfica';
 
-                slidePortada.addText('Reporte de Evidencia Fotográfica', {
+                slidePortada.addText(slideTitle, {
                     x: 0, y: 3.0, w: '100%', h: 0.8,
                     fontSize: 32, color: '8B0000', bold: true, align: 'center', fontFace: 'Arial'
                 });
@@ -688,7 +702,7 @@
                 });
 
                 // --- DIAPOSITIVAS DE CONTENIDO ---
-                for (const v of filteredVisitas) {
+                for (const v of visitsToExport) {
                     // Solo imágenes aprobadas
                     const imgs = v.imagenes.filter(img => img.estado === 'Aprobado');
                     if (imgs.length === 0) continue;
@@ -722,9 +736,13 @@
                         }
 
                         const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                        slide.addText(`Cliente: ${v.cliente} | Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
+                        const headerText = esAGD
+                            ? `Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`
+                            : `Cliente: ${v.cliente} | Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`;
+                        slide.addText(headerText, {
                             x: 1.5, y: 0.05, w: 8.3, h: 0.5,
-                            fontSize: 11, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
+                            fontSize: esAGD ? 12 : 11,
+                            color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
                         });
 
                         // Título Cadena y PDV
@@ -732,9 +750,28 @@
                             x: 0.5, y: 0.7, w: 9, h: 0.4,
                             fontSize: 24, color: 'DC2626', bold: true
                         });
-                        slide.addText(`${v.sucursal} - ${v.localidad}`, {
+                        
+                        let direccionText;
+                        if (esAGD) {
+                            const formatUbicacion = (vis) => {
+                                const loc = (vis.localidad && vis.localidad !== '-') ? vis.localidad.trim() : '';
+                                const zon = (vis.zona && vis.zona !== '-') ? vis.zona.trim() : '';
+                                if (loc && zon) return `${loc}, ${zon}`;
+                                return loc || zon || '';
+                            };
+                            direccionText = `${v.sucursal} - ${formatUbicacion(v)}`;
+                        } else {
+                            direccionText = `${v.sucursal} - ${v.localidad}`;
+                        }
+                        
+                        const lineaCompleta = (esAGD && v.repositor)
+                            ? `${direccionText}  |  Repositor: ${v.repositor}`
+                            : direccionText;
+                            
+                        slide.addText(lineaCompleta, {
                             x: 0.5, y: 1.1, w: 9, h: 0.3,
-                            fontSize: 16, color: '666666'
+                            fontSize: esAGD ? 14 : 16,
+                            color: '666666'
                         });
 
                         const areaY = 1.6, areaW = 9, areaH = 3.8, gutter = 0.3;
