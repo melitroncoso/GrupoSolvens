@@ -1186,7 +1186,7 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
             fontSize: 32, color: '8B0000', bold: true, align: 'center', fontFace: 'Arial'
         });
 
-        slidePortada.addText(`Cliente: ${cliente.toUpperCase()}\nExportado el: ${new Date().toLocaleDateString('es-AR')}`, {
+        slidePortada.addText(`Cliente: ${cliente.toUpperCase()}`, {
             x: 0, y: 4.6, w: '100%', h: 0.6,
             fontSize: 12, color: '666666', align: 'center'
         });
@@ -1268,11 +1268,12 @@ app.get('/api/exportar-ppt', async (req, res, next) => {
                     });
                 }
 
-                const fechaStr = new Date(visita.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                slide.addText(`Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
-                    x: 1.5, y: 0.05, w: 8.3, h: 0.5,
-                    fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
-                });
+                if (imageChunks.length > 1) {
+                    slide.addText(`Parte ${cIdx + 1}`, {
+                        x: 1.5, y: 0.05, w: 8.3, h: 0.5,
+                        fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
+                    });
+                }
 
                 // Título Cadena y PDV
                 slide.addText(suc.cadena, {
