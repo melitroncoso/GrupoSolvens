@@ -626,6 +626,27 @@
             });
         }
 
+        // Descarga varias imágenes en paralelo (con límite de concurrencia) en vez de una por una.
+        // Esto es lo que evita que el PPT tarde mucho: antes cada foto esperaba a que termine la anterior.
+        async function prefetchImagenes(urls, limite = 6, onProgreso) {
+            const cache = new Map();
+            const unicas = [...new Set(urls)];
+            let hechas = 0;
+            let idx = 0;
+            async function worker() {
+                while (idx < unicas.length) {
+                    const i = idx++;
+                    const url = unicas[i];
+                    cache.set(url, await getImgDataWithDimensions(url));
+                    hechas++;
+                    if (onProgreso) onProgreso(hechas, unicas.length);
+                }
+            }
+            const workers = Array.from({ length: Math.min(limite, unicas.length) }, worker);
+            await Promise.all(workers);
+            return cache;
+        }
+
         document.getElementById('btnExportarPPT').onclick = async () => {
             if (!filteredVisitas || filteredVisitas.length === 0) {
                 mostrarToast('No hay visitas para exportar con los filtros actuales.', 'error');
@@ -702,6 +723,20 @@
                 });
 
                 // --- DIAPOSITIVAS DE CONTENIDO ---
+
+                // Prefetch en paralelo de TODAS las imágenes aprobadas que van a usarse (antes se pedían una por una)
+                const todasLasUrls = [];
+                for (const v of visitsToExport) {
+                    for (const img of v.imagenes) {
+                        if (img.estado === 'Aprobado') todasLasUrls.push(img.ruta);
+                    }
+                }
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Descargando imágenes...</span>';
+                const cacheImagenes = await prefetchImagenes(todasLasUrls, 6, (hechas, total) => {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Descargando imágenes ${hechas}/${total}...</span>`;
+                });
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Generando...</span>';
+
                 for (const v of visitsToExport) {
                     // Solo imágenes aprobadas
                     const imgs = v.imagenes.filter(img => img.estado === 'Aprobado');
@@ -737,13 +772,15 @@
 
                         const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
                         const headerText = esAGD
-                            ? `Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`
+                            ? (imageChunks.length > 1 ? `Parte ${cIdx + 1}` : '')
                             : `Cliente: ${v.cliente} | Exportado el: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`;
-                        slide.addText(headerText, {
-                            x: 1.5, y: 0.05, w: 8.3, h: 0.5,
-                            fontSize: esAGD ? 12 : 11,
-                            color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
-                        });
+                        if (headerText) {
+                            slide.addText(headerText, {
+                                x: 1.5, y: 0.05, w: 8.3, h: 0.5,
+                                fontSize: esAGD ? 12 : 11,
+                                color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
+                            });
+                        }
 
                         // Título Cadena y PDV
                         slide.addText(v.cadena, {
@@ -782,7 +819,7 @@
                         else if (count === 2) { cW = 4; startX = 0.5 + (areaW - (cW * 2 + gutter)) / 2; }
 
                         for (let i = 0; i < count; i++) {
-                            const imgObj = await getImgDataWithDimensions(chunk[i].ruta);
+                            const imgObj = cacheImagenes.get(chunk[i].ruta);
                             if (imgObj) {
                                 const imgRatio = imgObj.width / imgObj.height;
                                 const boxRatio = cW / areaH;

@@ -516,6 +516,27 @@
             });
         }
 
+        // Descarga varias imágenes en paralelo (con límite de concurrencia) en vez de una por una.
+        // Esto es lo que evita que el PPT tarde mucho: antes cada foto esperaba a que termine la anterior.
+        async function prefetchImagenes(urls, limite = 6, onProgreso) {
+            const cache = new Map();
+            const unicas = [...new Set(urls)];
+            let hechas = 0;
+            let idx = 0;
+            async function worker() {
+                while (idx < unicas.length) {
+                    const i = idx++;
+                    const url = unicas[i];
+                    cache.set(url, await getImgDataWithDimensions(url));
+                    hechas++;
+                    if (onProgreso) onProgreso(hechas, unicas.length);
+                }
+            }
+            const workers = Array.from({ length: Math.min(limite, unicas.length) }, worker);
+            await Promise.all(workers);
+            return cache;
+        }
+
         async function generarReportePPTX() {
             const btn = document.getElementById('btnExportarPPTX');
             const originalHtml = btn.innerHTML;
@@ -597,6 +618,18 @@
 
 
                 // --- B. DIAPOSITIVAS DE CONTENIDO ---
+
+                // Prefetch en paralelo de TODAS las imágenes que van a usarse (antes se pedían una por una)
+                const todasLasUrls = [];
+                for (const v of ultimasVisitas) {
+                    for (const img of v.imagenes) todasLasUrls.push(img.ruta);
+                }
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Descargando imágenes...</span>`;
+                const cacheImagenes = await prefetchImagenes(todasLasUrls, 6, (hechas, total) => {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Descargando imágenes ${hechas}/${total}...</span>`;
+                });
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Generando...</span>';
+
                 for (const v of ultimasVisitas) {
                     let imageChunks = [];
                     if (v.imagenes.length <= 3) {
@@ -635,10 +668,15 @@
                         }
 
                         const fechaStr = new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'UTC' });
-                        slide.addText(`Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`, {
-                            x: 1.5, y: 0.05, w: 8.3, h: 0.5,
-                            fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
-                        });
+                        const headerTextVisita = window._esAGD
+                            ? (imageChunks.length > 1 ? `Parte ${cIdx + 1}` : '')
+                            : `Visita del: ${fechaStr}${imageChunks.length > 1 ? ` (Parte ${cIdx + 1})` : ''}`;
+                        if (headerTextVisita) {
+                            slide.addText(headerTextVisita, {
+                                x: 1.5, y: 0.05, w: 8.3, h: 0.5,
+                                fontSize: 12, color: 'FFFFFF', align: 'right', valign: 'middle', bold: true
+                            });
+                        }
 
                         // Título Cadena y PDV
                         slide.addText(v.cadena, {
@@ -673,7 +711,7 @@
                         }
 
                         for (let i = 0; i < count; i++) {
-                            const imgObj = await getImgDataWithDimensions(imgs[i].ruta);
+                            const imgObj = cacheImagenes.get(imgs[i].ruta);
                             if (imgObj) {
                                 const imgRatio = imgObj.width / imgObj.height;
                                 const boxRatio = cW / cH;
