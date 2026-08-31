@@ -14,26 +14,6 @@
     <!-- PptxGenJS Library -->
     <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <link rel="stylesheet" href="style/filtrosMultiseleccion.css">
-    <style>
-        /* ── Zoom wrapper del lightbox ── */
-        .lightbox-img-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            position: absolute;
-            top: 0; left: 0;
-            touch-action: none;
-        }
-        .lightbox-img-wrapper .lightbox-img {
-            position: relative;
-            will-change: transform;
-            transition: none;
-            transform-origin: center center;
-        }
-    </style>
 </head>
 
 <body>
@@ -216,7 +196,10 @@
         <img class="lightbox-img" id="lightbox-img" src="" alt="">
         </div>
 
-        <div class="lightbox-info">
+        <div class="lightbox-info" id="lightboxInfo">
+            <button class="btn-toggle-lightbox-info" id="lightboxToggleInfo" title="Mostrar/ocultar barra">
+                <i class="fas fa-chevron-down"></i>
+            </button>
             <div id="lightbox-info-content" style="display:contents;"></div>
 
             <div class="admin-lightbox-actions">
@@ -414,6 +397,11 @@
                 target.setAttribute('data-rotation', rot);
                 target.style.transform = `rotate(${rot}deg) ${(rot % 180 !== 0) ? 'scale(0.8)' : ''}`;
             }
+        };
+
+        document.getElementById('lightboxToggleInfo').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('lightboxInfo').classList.toggle('colapsada');
         };
 
         document.getElementById('lightbox-prev').onclick = (e) => { e.stopPropagation(); changeImage(-1); };

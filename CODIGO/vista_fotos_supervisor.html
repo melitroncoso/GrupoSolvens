@@ -13,24 +13,6 @@
     <link rel="stylesheet" href="style/inicio.css">
     <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <link rel="stylesheet" href="style/filtrosMultiseleccion.css">
-    <style>
-        .lightbox-img-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            position: absolute;
-            top: 0; left: 0;
-            touch-action: none;
-        }
-        .lightbox-img-wrapper .lightbox-img {
-            position: relative;
-            will-change: transform;
-            transform-origin: center center;
-        }
-    </style>
 </head>
 
 <body>
@@ -201,7 +183,10 @@
         <div class="lightbox-img-wrapper" id="lightbox-img-wrapper">
         <img class="lightbox-img" id="lightbox-img" src="" alt="">
         </div>
-        <div class="lightbox-info">
+        <div class="lightbox-info" id="lightboxInfo">
+            <button class="btn-toggle-lightbox-info" id="lightboxToggleInfo" title="Mostrar/ocultar barra">
+                <i class="fas fa-chevron-down"></i>
+            </button>
             <div id="lightbox-info-content" style="display:contents;"></div>
             <button class="btn-control-inline" id="lightbox-rotate"><i class="fas fa-sync-alt"></i></button>
         </div>
@@ -429,6 +414,11 @@
                 updateLightboxInfo();
             }, 0);
         }
+
+        document.getElementById('lightboxToggleInfo').onclick = e => {
+            e.stopPropagation();
+            document.getElementById('lightboxInfo').classList.toggle('colapsada');
+        };
 
         document.getElementById('lightbox-prev').onclick = e => { e.stopPropagation(); changeImage(-1); };
         document.getElementById('lightbox-next').onclick = e => { e.stopPropagation(); changeImage(1); };
